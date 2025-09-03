@@ -1,70 +1,743 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Agent Experiment System</title>
+    <title>Multi-Agent Experiment Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <div id="app">
-        <header>
-            <h1>Multi-Agent Experiment System</h1>
-            <p>AI Model Collaboration & Analysis Platform</p>
+    <!-- Three.js Background Canvas -->
+    <canvas id="threejs-canvas"></canvas>
+    <div class="container">
+        <header class="header">
+            <h1><canvas id="robot-head-canvas" width="48" height="48"></canvas> Multi-Agent Experiment Platform <canvas id="robot-head-canvas-2" width="48" height="48"></canvas></h1>
+            <p>Advanced AI Text Classification with Multi-Model Consensus</p>
         </header>
-        
-        <main>
-            <div id="visualization-container">
-                <!-- Three.js visualization will be rendered here -->
-            </div>
-            
-            <div id="control-panel">
-                <h2>Experiment Controls</h2>
-                
-                <div id="session-section">
-                    <h3>API Keys Setup</h3>
-                    <div id="session-status"></div>
-                    <div id="api-key-form" style="display: none;">
-                        <form id="session-form">
-                            <div class="key-input-group">
-                                <label for="claude-key">Claude API Key (Anthropic)</label>
-                                <input type="password" id="claude-key" placeholder="sk-ant-..." autocomplete="off">
+
+        <nav class="navigation">
+            <button class="nav-btn active" data-section="setup">
+                <i class="fas fa-cog"></i> Manual Setup
+            </button>
+            <button class="nav-btn" data-section="queue">
+                <i class="fas fa-list-ol"></i> Queue
+            </button>
+            <button class="nav-btn" data-section="experiments">
+                <i class="fas fa-flask"></i> Experiments
+            </button>
+            <button class="nav-btn" data-section="results">
+                <i class="fas fa-chart-bar"></i> Results
+            </button>
+            <button class="nav-btn" data-section="visualizations">
+                <i class="fas fa-chart-line"></i> Visualizations
+            </button>
+        </nav>
+
+        <main class="main-content">
+            <!-- Setup Section -->
+            <section id="setup" class="section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-upload"></i> Dataset Upload & Configuration</h2>
+                    <button class="data-requirements-btn" id="dataRequirementsBtn">
+                        <i class="fas fa-info-circle"></i> Data Requirements
+                    </button>
+                </div>
+
+                <div class="collapsible-panel">
+                    <div class="panel-toggle" onclick="togglePanel('api-keys')">
+                        <h3><i class="fas fa-key"></i> API Keys Configuration</h3>
+                        <i class="fas fa-chevron-down toggle-icon" id="api-keys-toggle"></i>
+                    </div>
+                    <div class="panel-content collapsed" id="api-keys-content">
+                        <p class="help-text">Enter your API keys. They will be saved temporarily until you close this window.</p>
+                    
+                    <div class="api-keys-grid">
+                        <div class="api-key-group">
+                            <label for="claudeApiKey">Claude API Key</label>
+                            <div class="key-input-container">
+                                <input type="password" id="claudeApiKey" placeholder="sk-ant-api03-...">
+                                <button type="button" class="toggle-visibility" data-target="claudeApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="test-key" data-provider="claude">
+                                    <i class="fas fa-check"></i> Test
+                                </button>
                             </div>
-                            <div class="key-input-group">
-                                <label for="openai-key">OpenAI API Key</label>
-                                <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off">
+                        </div>
+                        
+                        <div class="api-key-group">
+                            <label for="openaiApiKey">OpenAI API Key</label>
+                            <div class="key-input-container">
+                                <input type="password" id="openaiApiKey" placeholder="sk-proj-...">
+                                <button type="button" class="toggle-visibility" data-target="openaiApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="test-key" data-provider="openai">
+                                    <i class="fas fa-check"></i> Test
+                                </button>
                             </div>
-                            <div class="key-input-group">
-                                <label for="google-key">Google AI API Key</label>
-                                <input type="password" id="google-key" placeholder="Your Google API key..." autocomplete="off">
+                        </div>
+                        
+                        <div class="api-key-group">
+                            <label for="geminiApiKey">Gemini API Key</label>
+                            <div class="key-input-container">
+                                <input type="password" id="geminiApiKey" placeholder="AIzaSy...">
+                                <button type="button" class="toggle-visibility" data-target="geminiApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="test-key" data-provider="gemini">
+                                    <i class="fas fa-check"></i> Test
+                                </button>
                             </div>
-                            <div class="key-input-group">
-                                <label for="together-key">Together AI API Key</label>
-                                <input type="password" id="together-key" placeholder="Your Together API key..." autocomplete="off">
+                        </div>
+                        
+                        <div class="api-key-group">
+                            <label for="togetherApiKey">Together AI API Key (for Exaone & DeepSeek)</label>
+                            <div class="key-input-container">
+                                <input type="password" id="togetherApiKey" placeholder="849f0f...">
+                                <button type="button" class="toggle-visibility" data-target="togetherApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="test-key" data-provider="together">
+                                    <i class="fas fa-check"></i> Test
+                                </button>
                             </div>
-                            <div class="key-input-group">
-                                <label for="session-name">Session Name (Optional)</label>
-                                <input type="text" id="session-name" placeholder="My Experiment Session" maxlength="100" autocomplete="off">
-                            </div>
-                            <div class="form-buttons">
-                                <button type="submit" class="create-session-btn">Create Session</button>
-                                <button type="button" id="cancel-session-btn" class="cancel-btn">Cancel</button>
-                            </div>
-                        </form>
+                        </div>
+                    </div>
+                    
+                    <div class="api-keys-actions">
+                        <button id="saveApiKeys" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Keys
+                        </button>
+                        <button id="clearApiKeys" class="btn btn-secondary">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
                     </div>
                 </div>
-                
-                <div id="experiment-list"></div>
-                <div id="download-section">
-                    <h3>Downloads</h3>
-                    <div id="download-controls"></div>
+
+                <div class="upload-area">
+                    <div class="upload-zone" id="uploadZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Upload Dataset</h3>
+                        <p>Drag & drop your CSV file here or click to browse</p>
+                        <input type="file" id="fileInput" accept=".csv" hidden>
+                    </div>
+                    <div class="upload-status" id="uploadStatus" style="display: none;">
+                        <div class="status-item">
+                            <strong>File:</strong> <span id="fileName"></span>
+                        </div>
+                        <div class="status-item">
+                            <strong>Status:</strong> <span id="fileStatus"></span>
+                        </div>
+                        <div class="validation-results" id="validationResults"></div>
+                    </div>
                 </div>
-            </div>
+
+                <div class="configuration-panel">
+                    <h3><i class="fas fa-sliders-h"></i> Experiment Configuration</h3>
+                    
+                    <div class="config-row">
+                        <div class="config-group">
+                            <label for="domainSelect">Domain</label>
+                            <select id="domainSelect">
+                                <option value="">Select Domain...</option>
+                                <option value="fake_news">Fake News Detection</option>
+                                <option value="ai_text_detection">AI Text Detection</option>
+                            </select>
+                        </div>
+                        
+                        <div class="config-group">
+                            <label for="experimentTypes">Experiment Types</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="single" name="experimentTypes"> Single Model
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="dual" name="experimentTypes"> Dual Model
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="consensus" name="experimentTypes"> Consensus (3-Model)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-group">
+                            <label for="models">Models</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="claude" name="models"> Claude
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="openai" name="models"> OpenAI GPT
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="gemini" name="models"> Google Gemini
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="together" name="models"> Exaone 3.5
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="deepseek" name="models"> DeepSeek
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="config-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="adversarialToggle">
+                                <span class="toggle-slider"></span>
+                                Adversarial Mode
+                            </label>
+                            
+                            <div id="adversarySelection" class="adversary-selection" style="display: none;">
+                                <label for="adversaryModel">Which model should be the adversary?</label>
+                                <select id="adversaryModel">
+                                    <option value="random">Random Selection</option>
+                                    <option value="claude">Claude</option>
+                                    <option value="openai">OpenAI GPT</option>
+                                    <option value="gemini">Google Gemini</option>
+                                    <option value="together">Exaone 3.5</option>
+                                    <option value="deepseek">DeepSeek</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-group">
+                            <label for="temperature">Temperature: <span id="tempValue">0.7</span></label>
+                            <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                        </div>
+                        
+                        <div class="config-group">
+                            <label for="maxTurns">Max Conversation Turns</label>
+                            <input type="number" id="maxTurns" min="1" max="10" value="3">
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-group">
+                            <label for="contextStrategy">Context Injection Strategy</label>
+                            <select id="contextStrategy">
+                                <option value="first_turn_only">First Turn Only</option>
+                                <option value="all_turns">All Turns</option>
+                                <option value="first_and_last_turn">First & Last Turn</option>
+                            </select>
+                        </div>
+                        
+                        <div class="config-group">
+                            <label for="numArticles">Number of Articles (leave empty for all)</label>
+                            <input type="number" id="numArticles" min="1" placeholder="All articles">
+                        </div>
+                    </div>
+
+                    <div class="config-row">
+                        <div class="config-group">
+                            <label>Metrics to Extract from Models</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="confidence" name="metrics" checked> Confidence
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="agreement" name="metrics" checked> Agreement Score
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="bias" name="metrics" checked> Bias Score
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="reliability" name="metrics" checked> Reliability Score
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="manipulative_framing" name="metrics" checked> Manipulative Framing
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="classification" name="metrics" checked> Classification
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="config-group">
+                            <label>Additional Metrics (for adversarial mode)</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="relevant" name="advMetrics"> Relevance Score
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="informative" name="advMetrics"> Informative Score
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="influence" name="advMetrics"> Influence Score
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" value="opinion" name="advMetrics"> Opinion Score
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="collapsible-panel">
+                        <div class="panel-toggle" onclick="togglePanel('advanced-config')">
+                            <h4><i class="fas fa-cogs"></i> Advanced Configuration</h4>
+                            <i class="fas fa-chevron-down toggle-icon" id="advanced-config-toggle"></i>
+                        </div>
+                        <div class="panel-content collapsed" id="advanced-config-content">
+                        
+                        <div class="config-group">
+                            <label for="customPrompt">Custom System Prompt (optional)</label>
+                            <textarea id="customPrompt" rows="4" placeholder="Enter custom system prompt or leave blank to use defaults..."></textarea>
+                            <small class="help-text">Leave empty to use domain-specific default prompts</small>
+                        </div>
+                        </div>
+                    </div>
+
+                    <div class="preset-configs">
+                        <h4>Preset Configurations</h4>
+                        <div class="preset-buttons">
+                            <button class="preset-btn" data-preset="fake_news_basic">
+                                Basic Fake News
+                            </button>
+                            <button class="preset-btn" data-preset="fake_news_adversarial">
+                                Adversarial Fake News
+                            </button>
+                            <button class="preset-btn" data-preset="ai_detection_basic">
+                                Basic AI Detection
+                            </button>
+                            <button class="preset-btn" data-preset="comprehensive_comparison">
+                                Comprehensive Comparison
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Summary -->
+                    <div class="config-summary" id="configSummary" style="display: none;">
+                        <h4><i class="fas fa-eye"></i> Configuration Summary</h4>
+                        <div class="summary-grid" id="summaryGrid">
+                            <!-- Dynamic content will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="startExperiment" class="btn btn-primary" disabled>
+                            <i class="fas fa-play"></i> Start Experiment
+                        </button>
+                        <button id="resetConfig" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i> Reset Configuration
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Experiments Section -->
+            <section id="experiments" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-flask"></i> Running Experiments</h2>
+                </div>
+                
+                <div class="experiments-container" id="experimentsContainer">
+                    <div class="empty-state">
+                        <i class="fas fa-flask"></i>
+                        <p>No experiments running</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-bar"></i> Experiment Results</h2>
+                    <select id="resultsExperimentSelect">
+                        <option value="">Select experiment...</option>
+                    </select>
+                </div>
+                
+                <div class="results-container" id="resultsContainer">
+                    <div class="empty-state">
+                        <i class="fas fa-chart-bar"></i>
+                        <p>Select an experiment to view results</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Queue Section -->
+            <section id="queue" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list-ol"></i> Batch Queue Management</h2>
+                    <button class="data-requirements-btn" id="queueDataRequirementsBtn">
+                        <i class="fas fa-info-circle"></i> Data Requirements
+                    </button>
+                </div>
+                <p style="margin-bottom: 20px; color: #6b7280;">Automate research workflows with pre-defined experiment templates</p>
+
+                <div class="queue-tabs">
+                    <button class="queue-tab active" data-queue-tab="templates">
+                        <i class="fas fa-layer-group"></i> Templates
+                    </button>
+                    <button class="queue-tab" data-queue-tab="queue-status">
+                        <i class="fas fa-tasks"></i> Queue Status
+                    </button>
+                    <button class="queue-tab" data-queue-tab="batches">
+                        <i class="fas fa-folder-open"></i> Batch History
+                    </button>
+                </div>
+
+            
+                <!-- Templates Tab -->
+                <div id="queue-templates" class="queue-content active">
+                    <div class="templates-header">
+                        <h3>Research Templates</h3>
+                        <p>Select a pre-configured research template to automatically queue multiple experiments</p>
+                    </div>
+
+                    <!-- Queue Dataset Upload Section -->
+                    <div class="queue-upload-section">
+                        <h4><i class="fas fa-database"></i> Queue Dataset</h4>
+                        <p class="upload-help">Upload a dataset specifically for queue batch processing (independent of Manual Setup tab)</p>
+                        
+                        <div class="queue-upload-area">
+                            <div class="upload-zone" id="queueUploadZone">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h3>Upload Queue Dataset</h3>
+                                <p>Drag & drop your CSV file here or click to browse</p>
+                                <input type="file" id="queueFileInput" accept=".csv" hidden>
+                            </div>
+                            <div class="upload-status" id="queueUploadStatus" style="display: none;">
+                                <div class="status-item">
+                                    <strong>File:</strong> <span id="queueFileName"></span>
+                                </div>
+                                <div class="status-item">
+                                    <strong>Status:</strong> <span id="queueFileStatus"></span>
+                                </div>
+                                <div class="validation-results" id="queueValidationResults"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="queue-config-row">
+                            <div class="config-group">
+                                <label for="queueDomainSelect">Queue Domain</label>
+                                <select id="queueDomainSelect">
+                                    <option value="">Select Domain...</option>
+                                    <option value="fake_news">Fake News Detection</option>
+                                    <option value="ai_text_detection">AI Text Detection</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="template-grid" id="templateGrid">
+                        <div class="loading-template">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading templates...</p>
+                        </div>
+                    </div>
+
+                    <div class="template-actions">
+                        <button id="refreshTemplates" class="btn-secondary">
+                            <i class="fas fa-refresh"></i> Refresh Templates
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Queue Status Tab -->
+                <div id="queue-queue-status" class="queue-content">
+                    <div class="queue-status-header">
+                        <div class="queue-controls">
+                            <h3>Queue Controls</h3>
+                            <div class="control-buttons">
+                                <button id="startQueue" class="btn-success">
+                                    <i class="fas fa-play"></i> Start Queue
+                                </button>
+                                <button id="pauseQueue" class="btn-warning">
+                                    <i class="fas fa-pause"></i> Pause
+                                </button>
+                                <button id="stopQueue" class="btn-danger">
+                                    <i class="fas fa-stop"></i> Stop
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="queue-stats" id="queueStats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="queueTotal">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="queuePending">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="queueRunning">0</div>
+                            <div class="stat-label">Running</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="queueCompleted">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="queueFailed">0</div>
+                            <div class="stat-label">Failed</div>
+                        </div>
+                    </div>
+
+                    <div class="currently-running" id="currentlyRunning">
+                        <h4>Currently Running</h4>
+                        <div class="running-experiments" id="runningExperiments">
+                            <div class="empty-state">
+                                <i class="fas fa-play-circle"></i>
+                                <p>No experiments currently running</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="queue-list" id="queueList">
+                        <h4>Queue</h4>
+                        <div class="queued-experiments" id="queuedExperiments">
+                            <div class="empty-state">
+                                <i class="fas fa-list-ol"></i>
+                                <p>No experiments queued</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batches Tab -->
+                <div id="queue-batches" class="queue-content">
+                    <div class="batches-header">
+                        <h3>Batch History</h3>
+                        <p>View and manage your experiment batches</p>
+                    </div>
+
+                    <div class="batch-list" id="batchList">
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <p>No batches found</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Visualizations Section -->
+            <section id="visualizations" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> Publication-Quality Visualizations</h2>
+                    <p>Create publication-ready plots from your experiment results</p>
+                </div>
+
+                <!-- File Selection -->
+                <div class="vis-file-selection">
+                    <h3><i class="fas fa-file-csv"></i> Select Result File</h3>
+                    
+                    <div class="file-source-tabs">
+                        <button class="file-source-tab active" data-source="all">
+                            <i class="fas fa-globe"></i> All Files
+                        </button>
+                        <button class="file-source-tab" data-source="batch">
+                            <i class="fas fa-layer-group"></i> Batch Results
+                        </button>
+                        <button class="file-source-tab" data-source="individual">
+                            <i class="fas fa-flask"></i> Individual Results
+                        </button>
+                    </div>
+
+                    <div class="files-list" id="visualizationFilesList">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading available files...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="file-actions">
+                        <button id="refreshVisualizationFiles" class="btn-secondary">
+                            <i class="fas fa-refresh"></i> Refresh Files
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visualization Controls -->
+                <div class="vis-controls" id="visualizationControls" style="display: none;">
+                    <h3><i class="fas fa-sliders-h"></i> Visualization Options</h3>
+                    
+                    <div class="vis-options-grid">
+                        <div class="vis-option-group">
+                            <label for="conditionTypeSelect">Condition Type</label>
+                            <select id="conditionTypeSelect">
+                                <option value="">Auto-detect</option>
+                                <option value="single">Single Model</option>
+                                <option value="dual">Dual Model</option>
+                                <option value="consensus">Consensus (3-Model)</option>
+                                <option value="adversarial">Adversarial</option>
+                            </select>
+                        </div>
+                        
+                        <div class="vis-option-group">
+                            <label for="titlePrefixInput">Custom Title Prefix</label>
+                            <input type="text" id="titlePrefixInput" placeholder="e.g., Custom Analysis">
+                        </div>
+                    </div>
+                    
+                    <div class="vis-metrics-selection">
+                        <label>Metrics to Include</label>
+                        <div class="metrics-checkboxes" id="metricsCheckboxes">
+                            <!-- Dynamic checkboxes will be populated here -->
+                        </div>
+                        <small class="help-text">Leave unchecked to include all available metrics</small>
+                    </div>
+                    
+                    <div class="vis-actions">
+                        <button id="createVisualization" class="btn-primary">
+                            <i class="fas fa-chart-line"></i> Create Visualizations
+                        </button>
+                        <button id="autoDetectType" class="btn-secondary">
+                            <i class="fas fa-search"></i> Auto-detect Type
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visualization Display -->
+                <div class="vis-display" id="visualizationDisplay" style="display: none;">
+                    <div class="vis-header">
+                        <h3 id="visualizationTitle">Visualization Results</h3>
+                        <div class="vis-meta" id="visualizationMeta">
+                            <!-- Meta information will be displayed here -->
+                        </div>
+                    </div>
+                    
+                    <div class="vis-plots-container" id="visualizationPlotsContainer">
+                        <!-- Generated plots will be displayed here -->
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
-    
-    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
-    <script src="./js/session-manager.js"></script>
-    <script src="./js/app.js"></script>
+
+    <!-- Pre-Run Analytics Modal -->
+    <div class="modal-overlay" id="analyticsModal" style="display: none;">
+        <div class="modal-content analytics-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-chart-line"></i> Pre-Run Analytics Summary</h3>
+                <button class="modal-close" id="closeAnalyticsModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="analytics-summary" id="analyticsSummary">
+                    <!-- Dynamic content will be populated here -->
+                </div>
+                <div class="api-calls-breakdown" id="apiCallsBreakdown">
+                    <!-- API calls breakdown will be populated here -->
+                </div>
+                <div class="total-estimate" id="totalEstimate">
+                    <!-- Total API calls estimate -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmExperiment" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Start Experiment
+                </button>
+                <button id="cancelExperiment" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Data Requirements Modal -->
+    <div class="modal-overlay" id="dataRequirementsModal" style="display: none;">
+        <div class="modal data-requirements-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-table"></i> CSV Data Requirements</h3>
+                <button class="modal-close" id="closeDataRequirementsBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="requirements-section">
+                    <h4><i class="fas fa-newspaper"></i> Fake News Detection</h4>
+                    <div class="requirement-item">
+                        <h5>Required Columns:</h5>
+                        <ul>
+                            <li><strong>text</strong> - Article content to analyze</li>
+                        </ul>
+                    </div>
+                    <div class="requirement-item">
+                        <h5>Strongly Recommended:</h5>
+                        <ul>
+                            <li><strong>target</strong> or <strong>label</strong> - Ground truth labels (0 = Fake News, 1 = Real News)</li>
+                        </ul>
+                        <h5>Optional Columns:</h5>
+                        <ul>
+                            <li><strong>article_id</strong> - Unique identifier</li>
+                            <li><strong>source</strong> - Article source/publisher</li>
+                        </ul>
+                    </div>
+                    <div class="csv-example">
+                        <h5>Example CSV:</h5>
+                        <code>text,target,article_id,source<br>
+"Breaking: New study shows...",1,001,Reuters<br>
+"SHOCKING truth revealed...",0,002,Unknown</code>
+                    </div>
+                </div>
+
+                <div class="requirements-section">
+                    <h4><i class="fas fa-robot"></i> AI Text Detection</h4>
+                    <div class="requirement-item">
+                        <h5>Required Columns:</h5>
+                        <ul>
+                            <li><strong>text</strong> - Text content to analyze for AI generation</li>
+                        </ul>
+                    </div>
+                    <div class="requirement-item">
+                        <h5>Strongly Recommended:</h5>
+                        <ul>
+                            <li><strong>target</strong> or <strong>label</strong> - Ground truth labels (0 = AI-generated, 1 = Human-written)</li>
+                        </ul>
+                        <h5>Optional Columns:</h5>
+                        <ul>
+                            <li><strong>article_id</strong> - Unique identifier</li>
+                            <li><strong>source</strong> - Text source/origin</li>
+                        </ul>
+                    </div>
+                    <div class="csv-example">
+                        <h5>Example CSV:</h5>
+                        <code>text,target,article_id<br>
+"This essay explores the intersection...",1,001<br>
+"The analysis demonstrates that...",0,002</code>
+                    </div>
+                </div>
+
+                <div class="requirements-notes">
+                    <h4><i class="fas fa-lightbulb"></i> Important Notes</h4>
+                    <ul>
+                        <li><strong>Ground truth labels are highly recommended</strong> - Without them, visualizations and performance metrics cannot be generated</li>
+                        <li>The system auto-detects column names and suggests mappings</li>
+                        <li>Alternative column names like <code>content</code>, <code>article</code>, <code>ground_truth</code> are supported</li>
+                        <li>CSV files should be UTF-8 encoded</li>
+                        <li>Text should be clean (no excessive special characters or formatting)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="./js/script.js"></script>
+    <script src="./js/threejs-effects.js"></script>
 </body>
 </html>
