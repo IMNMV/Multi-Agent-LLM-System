@@ -358,13 +358,9 @@ async function uploadQueueFile(file, domain) {
 
 // Configuration Management
 async function loadConfiguration() {
-    showLoading('Loading configuration...');
-    const response = await apiCall('/config');
-    hideLoading();
-    
-    if (response.success) {
-        updateConfigurationOptions(response.data);
-    }
+    // Configuration will be loaded from local presets instead of API
+    // The backend doesn't have a /config endpoint yet
+    console.log('📋 Using local configuration presets');
 }
 
 function updateConfigurationOptions(config) {
@@ -1456,7 +1452,7 @@ async function testApiKey(event) {
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
     
     try {
-        const response = await apiCall('/test-keys', 'POST', {
+        const response = await apiCall('/sessions/test-keys', 'POST', {
             [provider + '_api_key']: apiKey
         });
         
@@ -1644,15 +1640,25 @@ async function loadTemplates() {
     `;
     
     try {
-        const response = await apiCall('/templates', 'GET');
+        // Use local mock templates since backend doesn't have templates endpoint yet
+        const mockTemplates = [
+            {
+                name: "Basic Fake News Analysis",
+                description: "Single model analysis for fake news detection",
+                experiments: ["single"],
+                enabled: true
+            },
+            {
+                name: "Comprehensive AI Detection", 
+                description: "Multi-model consensus for AI text detection",
+                experiments: ["single", "dual", "consensus"],
+                enabled: true
+            }
+        ];
         
-        if (response.success) {
-            queueState.templates = response.data;
-            displayTemplates(response.data);
-            console.log("✅ DEBUG: Templates loaded:", response.data);
-        } else {
-            throw new Error(response.error);
-        }
+        queueState.templates = mockTemplates;
+        displayTemplates(mockTemplates);
+        console.log("✅ DEBUG: Using mock templates");
     } catch (error) {
         console.error("❌ ERROR: Failed to load templates:", error);
         elements.templateGrid.innerHTML = `
