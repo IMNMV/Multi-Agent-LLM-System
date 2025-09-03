@@ -1053,7 +1053,7 @@ async function confirmAndStartExperiment() {
     // Start the experiment
     showLoading('Starting experiment...');
     
-    const response = await apiCall('/experiments', 'POST', experimentConfig);
+    const response = await apiCall('/experiments/start', 'POST', experimentConfig);
     
     hideLoading();
     
@@ -1067,7 +1067,7 @@ async function confirmAndStartExperiment() {
 }
 
 async function updateExperimentsList() {
-    const response = await apiCall('/experiments');
+    const response = await apiCall('/experiments/');
     
     if (response.success) {
         currentExperiments = response.data;
@@ -1747,7 +1747,7 @@ async function queueTemplate(templateName) {
     try {
         showLoading(`Queuing batch from template: ${templateName}...`);
         
-        const response = await apiCall('/queue/batch', 'POST', {
+        const response = await apiCall('/experiments/batch', 'POST', {
             template_name: templateName,
             domain: domain,
             dataset_path: queueConfig.dataset_path, // Use queue config instead of setup config
@@ -2152,7 +2152,7 @@ async function cancelExperiment(experimentId) {
     console.log(`🔧 DEBUG: Cancelling experiment: ${experimentId}`);
     
     try {
-        const response = await apiCall(`/queue/experiments/${experimentId}`, 'DELETE');
+        const response = await apiCall(`/experiments/${experimentId}`, 'DELETE');
         
         if (response.success) {
             showToast('Experiment cancelled successfully', 'info');
