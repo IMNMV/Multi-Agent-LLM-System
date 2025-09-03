@@ -1069,8 +1069,9 @@ async function confirmAndStartExperiment() {
 async function updateExperimentsList() {
     const response = await apiCall('/experiments/');
     
-    if (response.success) {
-        currentExperiments = response.data;
+    // Backend returns experiments directly: {"experiments": [...]}
+    if (response && response.experiments !== undefined) {
+        currentExperiments = response.experiments;
         renderExperiments();
         updateResultsSelect();
     }
@@ -1456,10 +1457,19 @@ async function testApiKey(event) {
             [provider + '_api_key']: apiKey
         });
         
-        if (response.success) {
-            button.className = 'test-key success';
-            button.innerHTML = '<i class="fas fa-check"></i> Valid';
-            showToast(`${provider} API key is valid`, 'success');
+        // Backend returns {"test_results": {provider: {valid: boolean, message: string}}}
+        if (response && response.test_results && response.test_results[provider]) {
+            const result = response.test_results[provider];
+            
+            if (result.valid) {
+                button.className = 'test-key success';
+                button.innerHTML = '<i class="fas fa-check"></i> Valid';
+                showToast(`${provider} API key is valid`, 'success');
+            } else {
+                button.className = 'test-key error';
+                button.innerHTML = '<i class="fas fa-times"></i> Invalid';
+                showToast(`${provider} API key test failed: ${result.message}`, 'error');
+            }
             
             setTimeout(() => {
                 button.className = 'test-key';
@@ -1468,7 +1478,7 @@ async function testApiKey(event) {
         } else {
             button.className = 'test-key error';
             button.innerHTML = '<i class="fas fa-times"></i> Invalid';
-            showToast(`${provider} API key test failed: ${response.error}`, 'error');
+            showToast(`${provider} API key test failed: Invalid response format`, 'error');
             
             setTimeout(() => {
                 button.className = 'test-key';
@@ -2017,10 +2027,11 @@ async function updateQueueStatus() {
     try {
         const response = await apiCall('/queue/status', 'GET');
         
-        if (response.success) {
-            displayQueueStatus(response.data);
+        // Backend returns queue status directly, not wrapped in success/data
+        if (response && response.queue_status !== undefined) {
+            displayQueueStatus(response);
         } else {
-            console.error("❌ ERROR: Failed to get queue status:", response.error);
+            console.error("❌ ERROR: Invalid queue status response:", response);
         }
     } catch (error) {
         console.error("❌ ERROR: Failed to update queue status:", error);
