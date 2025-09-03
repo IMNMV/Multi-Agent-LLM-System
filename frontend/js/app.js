@@ -1,4 +1,6 @@
 // Multi-Agent Experiment System Frontend Application
+console.log('🚀 App.js loaded successfully');
+console.log('THREE library available:', typeof THREE !== 'undefined');
 
 class MultiAgentApp {
     constructor() {
@@ -16,10 +18,23 @@ class MultiAgentApp {
     }
 
     setupThreeJS() {
-        const container = document.getElementById('visualization-container');
+        console.log('🎨 Setting up Three.js...');
         
-        // Scene setup
-        this.scene = new THREE.Scene();
+        if (typeof THREE === 'undefined') {
+            console.error('❌ THREE.js library not loaded!');
+            return;
+        }
+        
+        const container = document.getElementById('visualization-container');
+        if (!container) {
+            console.error('❌ Visualization container not found!');
+            return;
+        }
+        
+        try {
+            // Scene setup
+            this.scene = new THREE.Scene();
+            console.log('✅ Three.js scene created');
         this.scene.background = new THREE.Color(0x0a0a0a);
         
         // Camera setup
@@ -44,6 +59,13 @@ class MultiAgentApp {
         
         // Handle window resize
         window.addEventListener('resize', () => this.onWindowResize());
+        
+        console.log('✅ Three.js setup completed successfully');
+        } catch (error) {
+            console.error('❌ Error setting up Three.js:', error);
+            // Show fallback message in the container
+            container.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">3D Visualization temporarily unavailable</div>';
+        }
     }
 
     addTestGeometry() {
