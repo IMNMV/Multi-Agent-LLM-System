@@ -2,7 +2,7 @@
 
 class MultiAgentApp {
     constructor() {
-        this.apiBaseUrl = 'https://your-railway-app.railway.app/api'; // Update with your Railway URL
+        this.apiBaseUrl = 'https://multi-agent-llm-system-production.up.railway.app/api'; // Update with your Railway URL
         this.scene = null;
         this.camera = null;
         this.renderer = null;
