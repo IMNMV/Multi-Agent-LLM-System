@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Experiment System</title>
+    <link rel="stylesheet" href="frontend/css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Multi-Agent Experiment System</h1>
+            <p>AI Model Collaboration & Analysis Platform</p>
+        </header>
+        
+        <main>
+            <div id="visualization-container">
+                <!-- Three.js visualization will be rendered here -->
+            </div>
+            
+            <div id="control-panel">
+                <h2>Experiment Controls</h2>
+                
+                <div id="session-section">
+                    <h3>API Keys Setup</h3>
+                    <div id="session-status"></div>
+                    <div id="api-key-form" style="display: none;">
+                        <form id="session-form">
+                            <div class="key-input-group">
+                                <label for="claude-key">Claude API Key (Anthropic)</label>
+                                <input type="password" id="claude-key" placeholder="sk-ant-..." autocomplete="off">
+                            </div>
+                            <div class="key-input-group">
+                                <label for="openai-key">OpenAI API Key</label>
+                                <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off">
+                            </div>
+                            <div class="key-input-group">
+                                <label for="google-key">Google AI API Key</label>
+                                <input type="password" id="google-key" placeholder="Your Google API key..." autocomplete="off">
+                            </div>
+                            <div class="key-input-group">
+                                <label for="together-key">Together AI API Key</label>
+                                <input type="password" id="together-key" placeholder="Your Together API key..." autocomplete="off">
+                            </div>
+                            <div class="key-input-group">
+                                <label for="session-name">Session Name (Optional)</label>
+                                <input type="text" id="session-name" placeholder="My Experiment Session" maxlength="100" autocomplete="off">
+                            </div>
+                            <div class="form-buttons">
+                                <button type="submit" class="create-session-btn">Create Session</button>
+                                <button type="button" id="cancel-session-btn" class="cancel-btn">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div id="experiment-list"></div>
+                <div id="download-section">
+                    <h3>Downloads</h3>
+                    <div id="download-controls"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/three.min.js"></script>
+    <script src="frontend/js/session-manager.js"></script>
+    <script src="frontend/js/app.js"></script>
+</body>
+</html>
