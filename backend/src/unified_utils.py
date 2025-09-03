@@ -158,8 +158,14 @@ def test_api_key_validity(provider: str, api_key: str) -> tuple[bool, str]:
         
         elif provider in ["together", "deepseek"] and together:
             client = together.Together(api_key=api_key)
+            # Use YOUR specified models
+            if provider == "together":
+                test_model = "lgai/exaone-3-5-32b-instruct"
+            else:  # deepseek
+                test_model = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"
+            
             response = client.chat.completions.create(
-                model="meta-llama/Llama-2-7b-chat-hf",
+                model=test_model,
                 messages=[{"role": "user", "content": "Hi"}],
                 max_tokens=10
             )
