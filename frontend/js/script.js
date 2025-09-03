@@ -1779,13 +1779,15 @@ async function viewTemplateDetails(templateName) {
     console.log(`🔧 DEBUG: Viewing template details: ${templateName}`);
     
     try {
-        const response = await apiCall(`/templates/${encodeURIComponent(templateName)}`, 'GET');
+        // Use mock template data since backend doesn't have templates endpoint
+        const mockTemplate = {
+            name: templateName,
+            description: "Sample template configuration",
+            experiments: ["single", "dual"],
+            config: { domain: "fake_news", models: ["claude", "openai"] }
+        };
         
-        if (response.success) {
-            displayTemplateDetailsModal(response.data);
-        } else {
-            throw new Error(response.error);
-        }
+        displayTemplateDetailsModal(mockTemplate);
     } catch (error) {
         console.error("❌ ERROR: Failed to get template details:", error);
         showToast(`Failed to load template details: ${error.message}`, 'error');
