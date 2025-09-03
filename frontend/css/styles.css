@@ -254,6 +254,268 @@ main {
     margin-bottom: 1rem;
 }
 
+/* Session Management Styles */
+#session-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#session-section h3 {
+    color: #00d4ff;
+    margin-bottom: 1rem;
+}
+
+#session-status {
+    margin-bottom: 1rem;
+}
+
+.session-active {
+    background: linear-gradient(45deg, #00ff00, #00cc00);
+    color: #000;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.session-inactive {
+    background: rgba(255, 165, 0, 0.2);
+    border: 1px solid #ffa500;
+    color: #ffa500;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+/* API Key Form Styles */
+#api-key-form {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.key-input-group {
+    margin-bottom: 1rem;
+}
+
+.key-input-group label {
+    display: block;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.key-input-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.key-input-group input:focus {
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.key-input-group input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Form Buttons */
+.form-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.create-session-btn {
+    background: linear-gradient(45deg, #00d4ff, #0099cc);
+    border: none;
+    color: #000;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.create-session-btn:hover {
+    background: linear-gradient(45deg, #0099cc, #006699);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+}
+
+.create-session-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cancel-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Session Info Display */
+.session-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.session-detail {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.session-detail h4 {
+    color: #00d4ff;
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.session-detail p {
+    margin: 0;
+    color: #ffffff;
+    font-size: 0.8rem;
+}
+
+/* Provider badges */
+.provider-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.provider-badge {
+    background: linear-gradient(45deg, #00d4ff, #0099cc);
+    color: #000;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+/* Session Action Buttons */
+.session-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.extend-session-btn {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    border: none;
+    color: #000;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.extend-session-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.delete-session-btn {
+    background: linear-gradient(45deg, #dc3545, #c82333);
+    border: none;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.delete-session-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.setup-keys-btn {
+    background: linear-gradient(45deg, #ffc107, #fd7e14);
+    border: none;
+    color: #000;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.setup-keys-btn:hover {
+    background: linear-gradient(45deg, #fd7e14, #dc6f00);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    color: #fff;
+    font-weight: bold;
+    z-index: 1000;
+    animation: slideInRight 0.3s ease;
+}
+
+.notification.success {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: #000;
+}
+
+.notification.error {
+    background: linear-gradient(45deg, #dc3545, #c82333);
+}
+
+.notification.warning {
+    background: linear-gradient(45deg, #ffc107, #fd7e14);
+    color: #000;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 @media (max-width: 768px) {
     main {
         grid-template-columns: 1fr;

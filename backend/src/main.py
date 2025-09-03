@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer
 from typing import Dict, List, Any, Optional
 import uvicorn
 
@@ -22,6 +23,7 @@ from .api.experiments import router as experiments_router
 from .api.queue import router as queue_router
 from .api.health import router as health_router
 from .api.downloads import router as downloads_router
+from .api.sessions import router as sessions_router
 
 # Configure logging
 logging.basicConfig(
@@ -115,8 +117,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Security middleware
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    
+    # Content Security Policy
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https:; "
+        "font-src 'self' https:; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
+    )
+    
+    # Additional security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    
+    return response
+
 # Include routers
 app.include_router(health_router, prefix="/api", tags=["health"])
+app.include_router(sessions_router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(experiments_router, prefix="/api/experiments", tags=["experiments"])
 app.include_router(queue_router, prefix="/api/queue", tags=["queue"])
 app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"])

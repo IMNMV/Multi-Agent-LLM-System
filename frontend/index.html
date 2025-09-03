@@ -20,6 +20,40 @@
             
             <div id="control-panel">
                 <h2>Experiment Controls</h2>
+                
+                <div id="session-section">
+                    <h3>API Keys Setup</h3>
+                    <div id="session-status"></div>
+                    <div id="api-key-form" style="display: none;">
+                        <form id="session-form">
+                            <div class="key-input-group">
+                                <label for="claude-key">Claude API Key (Anthropic)</label>
+                                <input type="password" id="claude-key" placeholder="sk-ant-..." autocomplete="off">
+                            </div>
+                            <div class="key-input-group">
+                                <label for="openai-key">OpenAI API Key</label>
+                                <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off">
+                            </div>
+                            <div class="key-input-group">
+                                <label for="google-key">Google AI API Key</label>
+                                <input type="password" id="google-key" placeholder="Your Google API key..." autocomplete="off">
+                            </div>
+                            <div class="key-input-group">
+                                <label for="together-key">Together AI API Key</label>
+                                <input type="password" id="together-key" placeholder="Your Together API key..." autocomplete="off">
+                            </div>
+                            <div class="key-input-group">
+                                <label for="session-name">Session Name (Optional)</label>
+                                <input type="text" id="session-name" placeholder="My Experiment Session" maxlength="100" autocomplete="off">
+                            </div>
+                            <div class="form-buttons">
+                                <button type="submit" class="create-session-btn">Create Session</button>
+                                <button type="button" id="cancel-session-btn" class="cancel-btn">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
                 <div id="experiment-list"></div>
                 <div id="download-section">
                     <h3>Downloads</h3>
@@ -30,6 +64,7 @@
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/three.min.js"></script>
+    <script src="js/session-manager.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
