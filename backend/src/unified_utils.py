@@ -47,6 +47,14 @@ except ImportError:
     together = None
     logger.warning("Together library not available")
 
+# Handle pandas import for CSV processing
+try:
+    import pandas as pd
+    HAS_PANDAS = True
+except ImportError:
+    HAS_PANDAS = False
+    logger.warning("Pandas not available - CSV processing will be limited")
+
 # Global state for API clients and rate limiting
 _clients = {}
 _api_call_timestamps = {}
@@ -418,11 +426,14 @@ def save_results_incrementally(results: List[Dict], filename: str, fieldnames: L
 
 def load_dataset(dataset_path: str, text_column: str = "text", 
                 id_column: str = "article_id", target_column: str = "target",
-                num_articles: Optional[int] = None) -> pd.DataFrame:
+                num_articles: Optional[int] = None):
     """Load and prepare dataset for experiments."""
     try:
         if not os.path.exists(dataset_path):
             raise FileNotFoundError(f"Dataset not found: {dataset_path}")
+        
+        if not HAS_PANDAS:
+            raise ImportError("Pandas is required for dataset loading but not installed")
         
         df = pd.read_csv(dataset_path)
         

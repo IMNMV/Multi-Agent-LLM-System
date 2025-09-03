@@ -61,9 +61,18 @@ async def download_experiment_results(experiment_id: str, format: str = "csv"):
         
         elif format.lower() == "json":
             # Convert CSV to JSON for download
-            import pandas as pd
-            df = pd.read_csv(main_csv)
-            json_data = df.to_json(orient='records', indent=2)
+            try:
+                import pandas as pd
+                df = pd.read_csv(main_csv)
+                json_data = df.to_json(orient='records', indent=2)
+            except ImportError:
+                # Fallback: simple CSV to JSON conversion without pandas
+                import csv
+                data = []
+                with open(main_csv, 'r', encoding='utf-8') as f:
+                    reader = csv.DictReader(f)
+                    data = list(reader)
+                json_data = json.dumps(data, indent=2)
             
             return Response(
                 content=json_data,
