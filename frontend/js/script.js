@@ -1456,9 +1456,8 @@ async function testApiKey(event) {
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
     
     try {
-        const response = await apiCall('/test-key', 'POST', {
-            provider: provider,
-            api_key: apiKey
+        const response = await apiCall('/test-keys', 'POST', {
+            [provider + '_api_key']: apiKey
         });
         
         if (response.success) {
