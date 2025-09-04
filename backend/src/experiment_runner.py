@@ -142,7 +142,7 @@ class UnifiedExperimentRunner:
                         logger.info(f"✅ Dataset exists at original path: {dataset_path}")
                     
                     if dataset_path:
-                        dataset = self._load_dataset(dataset_path)
+                        dataset = self._load_dataset(dataset_path, session_id)
                         logger.info(f"📊 Successfully loaded dataset with {len(dataset)} rows from {dataset_path}")
                     else:
                         logger.info("Dataset path is None, will use fallback data")
@@ -237,39 +237,69 @@ class UnifiedExperimentRunner:
     
 # REMOVED _create_fallback_dataset - NO FAKE DATA ALLOWED
     
-    def _load_dataset(self, file_path: str) -> List[Dict[str, Any]]:
-        """Load dataset from CSV file."""
+    def _load_dataset(self, dataset_path: str, session_id: str = None) -> List[Dict[str, Any]]:
+        """Load dataset from memory or file."""
+        dataset = []
+        
+        # TRY MEMORY FIRST (session-isolated)
+        if session_id and dataset_path.startswith('dataset_'):
+            try:
+                # Import at runtime to avoid circular import
+                import importlib
+                main_module = importlib.import_module('backend.src.main')
+                SESSION_DATASETS = main_module.SESSION_DATASETS
+                
+                if session_id in SESSION_DATASETS and dataset_path in SESSION_DATASETS[session_id]:
+                    logger.info(f"🧠 Loading dataset from session memory: {dataset_path}")
+                    file_content = SESSION_DATASETS[session_id][dataset_path]
+                    return self._parse_csv_content(file_content)
+            except Exception as e:
+                logger.error(f"Failed to load from memory: {e}")
+        
+        # FALLBACK TO FILE SYSTEM (if path is real file path)
+        if os.path.exists(dataset_path):
+            logger.info(f"📁 Loading dataset from file: {dataset_path}")
+            try:
+                with open(dataset_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    file_content = f.read()
+                    return self._parse_csv_content(file_content)
+            except Exception as e:
+                raise ValueError(f"Failed to load dataset from file {dataset_path}: {e}")
+        
+        # NEITHER MEMORY NOR FILE FOUND
+        raise ValueError(f"Dataset not found: {dataset_path} (session: {session_id})")
+    
+    def _parse_csv_content(self, file_content: str) -> List[Dict[str, Any]]:
+        """Parse CSV content from string."""
         dataset = []
         
         try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                # Detect delimiter
-                sample = f.read(1024)
-                f.seek(0)
+            # Detect delimiter
+            delimiter = ','
+            if sample.count('\t') > sample.count(','):
+                delimiter = '\t'
+            
+            # Parse CSV from string content
+            import io
+            csv_reader = csv.DictReader(io.StringIO(file_content), delimiter=delimiter)
                 
-                delimiter = ','
-                if sample.count('\t') > sample.count(','):
-                    delimiter = '\t'
-                
-                reader = csv.DictReader(f, delimiter=delimiter)
-                
-                for row_idx, row in enumerate(reader):
-                    if row_idx >= 1000:  # Limit for safety
-                        logger.warning(f"⚠️ Dataset truncated to 1000 rows for processing")
-                        break
-                        
-                    # Clean and validate row
-                    clean_row = {}
-                    for key, value in row.items():
-                        if key and value is not None:
-                            clean_row[key.strip()] = str(value).strip()
+            for row_idx, row in enumerate(csv_reader):
+                if row_idx >= 1000:  # Limit for safety
+                    logger.warning(f"⚠️ Dataset truncated to 1000 rows for processing")
+                    break
                     
-                    if clean_row:  # Only add non-empty rows
-                        clean_row['_row_id'] = row_idx
-                        dataset.append(clean_row)
+                # Clean and validate row
+                clean_row = {}
+                for key, value in row.items():
+                    if key and value is not None:
+                        clean_row[key.strip()] = str(value).strip()
+                
+                if clean_row:  # Only add non-empty rows
+                    clean_row['_row_id'] = row_idx
+                    dataset.append(clean_row)
                         
         except Exception as e:
-            raise ValueError(f"Failed to load dataset from {file_path}: {e}")
+            raise ValueError(f"Failed to parse CSV content: {e}")
         
         if not dataset:
             raise ValueError("Dataset is empty or could not be parsed")

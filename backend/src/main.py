@@ -39,6 +39,10 @@ logger = logging.getLogger(__name__)
 config_manager = None
 experiment_queue = None
 
+# SESSION-ISOLATED IN-MEMORY DATASET STORAGE
+# Each session gets its own isolated data space
+SESSION_DATASETS = {}  # {session_id: {dataset_id: dataset_content}}
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager - startup and shutdown."""
@@ -164,8 +168,21 @@ app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"]
 # Add working file upload endpoint with python-multipart support
 @app.post("/api/upload")
 async def upload_file(request: Request):
-    """File upload endpoint with improved parsing."""
+    """File upload endpoint - SESSION-ISOLATED IN-MEMORY STORAGE."""
     try:
+        # Get or create session ID for privacy isolation
+        session_id = request.headers.get('x-session-id') 
+        if not session_id:
+            import uuid
+            session_id = str(uuid.uuid4())
+            logger.info(f"🆔 Created new session: {session_id[:8]}...")
+        else:
+            logger.info(f"🆔 Using session: {session_id[:8]}...")
+        
+        # Initialize session dataset storage if needed
+        global SESSION_DATASETS
+        if session_id not in SESSION_DATASETS:
+            SESSION_DATASETS[session_id] = {}
         # Check content type
         content_type = request.headers.get("content-type", "")
         logger.info(f"Upload request content-type: {content_type}")
@@ -206,59 +223,15 @@ async def upload_file(request: Request):
         if not any(filename.lower().endswith(ext) for ext in valid_extensions):
             raise HTTPException(status_code=400, detail=f"Invalid file type. Supported: {', '.join(valid_extensions)}")
         
-        # Save file to uploads directory - MUST WORK OR FAIL
-        uploads_dir = None
-        
-        # Try directory options in order of preference
-        directory_options = [
-            '/tmp/uploads',  # Most likely to work on Railway
-            os.getenv('UPLOADS_DIR', '/app/uploads'),
-            './uploads',
-            '/app/tmp/uploads'  # Alternative Railway location
-        ]
-        
-        for dir_option in directory_options:
-            try:
-                test_dir = Path(dir_option)
-                test_dir.mkdir(parents=True, exist_ok=True)
-                
-                # Test write permissions with a more thorough test
-                test_file = test_dir / f'test_{int(time.time())}.tmp'
-                test_file.write_text('upload test', encoding='utf-8')
-                
-                # Verify we can read it back
-                if test_file.read_text(encoding='utf-8') == 'upload test':
-                    test_file.unlink()  # Clean up
-                    uploads_dir = test_dir
-                    logger.info(f"✅ Using uploads directory: {uploads_dir}")
-                    break
-                else:
-                    test_file.unlink()
-                    
-            except Exception as e:
-                logger.warning(f"Directory {dir_option} failed: {e}")
-                continue
-        
-        if not uploads_dir:
-            raise HTTPException(
-                status_code=500, 
-                detail="CRITICAL: Cannot create writable directory for file uploads. Server configuration issue."
-            )
-        
-        # Create unique filename to avoid conflicts
+        # STORE IN SESSION-ISOLATED MEMORY - NO FILE SYSTEM
         import time
-        timestamp = int(time.time())
-        safe_filename = f"{timestamp}_{filename}"
-        file_path = uploads_dir / safe_filename
+        dataset_id = f"dataset_{session_id[:8]}_{int(time.time())}"
         
-        # Write file content to disk
-        try:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(file_content)
-            logger.info(f"💾 File saved successfully: {file_path}")
-        except Exception as e:
-            logger.error(f"Failed to write file {file_path}: {e}")
-            raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {str(e)}")
+        # Store dataset content in session-isolated memory
+        SESSION_DATASETS[session_id][dataset_id] = file_content
+        
+        logger.info(f"💾 Dataset stored in memory - Session: {session_id[:8]}..., Dataset: {dataset_id}")
+        logger.info(f"📊 Dataset size: {len(file_content)} characters, {len(file_content.split('\\n'))} lines")
         
         # Basic content validation
         lines = file_content.split('\n')
@@ -285,11 +258,11 @@ async def upload_file(request: Request):
         
         return {
             "success": True,
-            "message": "File uploaded and validated successfully",
+            "message": "File uploaded and stored in secure session memory",
             "data": {
-                "file_path": str(file_path),  # GUARANTEED REAL PATH
+                "file_path": dataset_id,  # MEMORY DATASET ID
+                "session_id": session_id,  # SESSION FOR PRIVACY
                 "original_filename": filename,
-                "saved_filename": safe_filename,
                 "domain": domain,
                 "size": len(file_content),
                 "validation": validation_result
