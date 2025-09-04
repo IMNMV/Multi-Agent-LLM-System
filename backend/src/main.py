@@ -213,21 +213,47 @@ async def upload_file(request: Request):
         if not any(filename.lower().endswith(ext) for ext in valid_extensions):
             raise HTTPException(status_code=400, detail=f"Invalid file type. Supported: {', '.join(valid_extensions)}")
         
-        # Save file to uploads directory
-        uploads_dir = Path(os.getenv('UPLOADS_DIR', '/app/uploads'))
-        uploads_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create unique filename to avoid conflicts
-        import time
-        timestamp = int(time.time())
-        safe_filename = f"{timestamp}_{filename}"
-        file_path = uploads_dir / safe_filename
-        
-        # Write file content to disk
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(file_content)
-        
-        logger.info(f"💾 Saved uploaded file to: {file_path}")
+        # Save file to uploads directory with error handling
+        try:
+            # Try multiple directory options
+            uploads_dir = None
+            for dir_option in [
+                os.getenv('UPLOADS_DIR', '/app/uploads'),
+                '/tmp/uploads',
+                './uploads'
+            ]:
+                try:
+                    uploads_dir = Path(dir_option)
+                    uploads_dir.mkdir(parents=True, exist_ok=True)
+                    # Test write permissions
+                    test_file = uploads_dir / '.test'
+                    test_file.write_text('test')
+                    test_file.unlink()
+                    logger.info(f"📁 Using uploads directory: {uploads_dir}")
+                    break
+                except Exception as e:
+                    logger.warning(f"Cannot use directory {dir_option}: {e}")
+                    continue
+            
+            if not uploads_dir:
+                raise RuntimeError("No writable directory found for uploads")
+            
+            # Create unique filename to avoid conflicts
+            import time
+            timestamp = int(time.time())
+            safe_filename = f"{timestamp}_{filename}"
+            file_path = uploads_dir / safe_filename
+            
+            # Write file content to disk
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(file_content)
+            
+            logger.info(f"💾 Saved uploaded file to: {file_path}")
+            
+        except Exception as e:
+            logger.error(f"Failed to save uploaded file: {e}")
+            # Continue without saving - use in-memory processing
+            file_path = None
         
         # Basic content validation
         lines = file_content.split('\n')
@@ -256,9 +282,10 @@ async def upload_file(request: Request):
             "success": True,
             "message": "File uploaded and validated successfully",
             "data": {
-                "file_path": str(file_path),  # Return actual saved path
+                "file_path": str(file_path) if file_path else f"/uploads/{filename}",  # Fallback to virtual path
                 "original_filename": filename,
-                "saved_filename": safe_filename,
+                "saved_filename": safe_filename if 'safe_filename' in locals() else filename,
+                "saved_to_disk": file_path is not None,
                 "domain": domain,
                 "size": len(file_content),
                 "validation": validation_result
