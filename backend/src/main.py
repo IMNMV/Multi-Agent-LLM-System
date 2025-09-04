@@ -206,47 +206,59 @@ async def upload_file(request: Request):
         if not any(filename.lower().endswith(ext) for ext in valid_extensions):
             raise HTTPException(status_code=400, detail=f"Invalid file type. Supported: {', '.join(valid_extensions)}")
         
-        # Save file to uploads directory with error handling
-        try:
-            # Try multiple directory options
-            uploads_dir = None
-            for dir_option in [
-                os.getenv('UPLOADS_DIR', '/app/uploads'),
-                '/tmp/uploads',
-                './uploads'
-            ]:
-                try:
-                    uploads_dir = Path(dir_option)
-                    uploads_dir.mkdir(parents=True, exist_ok=True)
-                    # Test write permissions
-                    test_file = uploads_dir / '.test'
-                    test_file.write_text('test')
-                    test_file.unlink()
-                    logger.info(f"📁 Using uploads directory: {uploads_dir}")
+        # Save file to uploads directory - MUST WORK OR FAIL
+        uploads_dir = None
+        
+        # Try directory options in order of preference
+        directory_options = [
+            '/tmp/uploads',  # Most likely to work on Railway
+            os.getenv('UPLOADS_DIR', '/app/uploads'),
+            './uploads',
+            '/app/tmp/uploads'  # Alternative Railway location
+        ]
+        
+        for dir_option in directory_options:
+            try:
+                test_dir = Path(dir_option)
+                test_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Test write permissions with a more thorough test
+                test_file = test_dir / f'test_{int(time.time())}.tmp'
+                test_file.write_text('upload test', encoding='utf-8')
+                
+                # Verify we can read it back
+                if test_file.read_text(encoding='utf-8') == 'upload test':
+                    test_file.unlink()  # Clean up
+                    uploads_dir = test_dir
+                    logger.info(f"✅ Using uploads directory: {uploads_dir}")
                     break
-                except Exception as e:
-                    logger.warning(f"Cannot use directory {dir_option}: {e}")
-                    continue
-            
-            if not uploads_dir:
-                raise RuntimeError("No writable directory found for uploads")
-            
-            # Create unique filename to avoid conflicts
-            import time
-            timestamp = int(time.time())
-            safe_filename = f"{timestamp}_{filename}"
-            file_path = uploads_dir / safe_filename
-            
-            # Write file content to disk
+                else:
+                    test_file.unlink()
+                    
+            except Exception as e:
+                logger.warning(f"Directory {dir_option} failed: {e}")
+                continue
+        
+        if not uploads_dir:
+            raise HTTPException(
+                status_code=500, 
+                detail="CRITICAL: Cannot create writable directory for file uploads. Server configuration issue."
+            )
+        
+        # Create unique filename to avoid conflicts
+        import time
+        timestamp = int(time.time())
+        safe_filename = f"{timestamp}_{filename}"
+        file_path = uploads_dir / safe_filename
+        
+        # Write file content to disk
+        try:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(file_content)
-            
-            logger.info(f"💾 Saved uploaded file to: {file_path}")
-            
+            logger.info(f"💾 File saved successfully: {file_path}")
         except Exception as e:
-            logger.error(f"Failed to save uploaded file: {e}")
-            # Continue without saving - use in-memory processing
-            file_path = None
+            logger.error(f"Failed to write file {file_path}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {str(e)}")
         
         # Basic content validation
         lines = file_content.split('\n')
@@ -271,15 +283,11 @@ async def upload_file(request: Request):
                 if first_line:
                     validation_result["statistics"]["columns"] = first_line.split(',')
         
-        # FAIL if file couldn't be saved - NO FALLBACKS
-        if not file_path:
-            raise HTTPException(status_code=500, detail="FAILED: Could not save uploaded file to disk")
-            
         return {
             "success": True,
             "message": "File uploaded and validated successfully",
             "data": {
-                "file_path": str(file_path),  # ONLY REAL PATHS
+                "file_path": str(file_path),  # GUARANTEED REAL PATH
                 "original_filename": filename,
                 "saved_filename": safe_filename,
                 "domain": domain,
