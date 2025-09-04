@@ -163,21 +163,30 @@ class UnifiedExperimentRunner:
             # Load dataset with fallbacks
             dataset = []
             if dataset_path:
+                logger.info(f"🔍 Attempting to load dataset: {dataset_path}")
                 try:
                     if not os.path.exists(dataset_path):
+                        logger.info(f"Dataset path doesn't exist directly, resolving: {dataset_path}")
                         # Handle uploaded files (they might be virtual paths)
                         actual_path = self._resolve_dataset_path(dataset_path)
+                        logger.info(f"🔍 Resolved path result: {actual_path}")
                         if actual_path and os.path.exists(actual_path):
                             dataset_path = actual_path
+                            logger.info(f"✅ Found resolved dataset at: {dataset_path}")
                         else:
-                            logger.warning(f"Dataset file not found: {dataset_path}, using fallback data")
+                            logger.warning(f"❌ Dataset file not found after resolution: {dataset_path} -> {actual_path}")
+                            logger.warning("Using fallback data instead of user upload")
                             dataset_path = None
+                    else:
+                        logger.info(f"✅ Dataset exists at original path: {dataset_path}")
                     
                     if dataset_path:
                         dataset = self._load_dataset(dataset_path)
-                        logger.info(f"📊 Loaded dataset with {len(dataset)} rows")
+                        logger.info(f"📊 Successfully loaded dataset with {len(dataset)} rows from {dataset_path}")
+                    else:
+                        logger.info("Dataset path is None, will use fallback data")
                 except Exception as e:
-                    logger.warning(f"Failed to load dataset {dataset_path}: {e}")
+                    logger.error(f"Failed to load dataset {dataset_path}: {e}")
                     dataset_path = None
             
             # Use fallback dataset if no dataset loaded
