@@ -24,8 +24,9 @@ from .api.queue import router as queue_router
 from .api.health import router as health_router
 from .api.downloads import router as downloads_router
 from .api.sessions import router as sessions_router
-from .api.uploads import router as uploads_router
-from .api.visualizations import router as visualizations_router
+# Temporarily disable new routers for debugging
+# from .api.uploads import router as uploads_router
+# from .api.visualizations import router as visualizations_router
 
 # Configure logging
 logging.basicConfig(
@@ -153,8 +154,9 @@ app.include_router(sessions_router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(experiments_router, prefix="/api/experiments", tags=["experiments"])
 app.include_router(queue_router, prefix="/api/queue", tags=["queue"])
 app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"])
-app.include_router(uploads_router, prefix="/api", tags=["uploads"])
-app.include_router(visualizations_router, prefix="/api/visualizations", tags=["visualizations"])
+# Temporarily disable new routers for debugging
+# app.include_router(uploads_router, prefix="/api", tags=["uploads"])
+# app.include_router(visualizations_router, prefix="/api/visualizations", tags=["visualizations"])
 
 # Root endpoint
 @app.get("/")
