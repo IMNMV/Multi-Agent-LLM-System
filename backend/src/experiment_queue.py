@@ -212,10 +212,16 @@ class ExperimentQueue:
             logger.warning("Queue is already running")
             return
         
+        # Kill any existing worker thread
+        if self.worker_thread and self.worker_thread.is_alive():
+            logger.info("Stopping existing queue worker")
+            self.status = QueueStatus.STOPPED
+            self.worker_thread.join(timeout=3.0)
+        
         self.status = QueueStatus.RUNNING
         self.worker_thread = threading.Thread(target=self._queue_worker, daemon=True)
         self.worker_thread.start()
-        logger.info("Queue started")
+        logger.info(f"🚀 Queue started - status: {self.status.value}")
     
     def stop_queue(self):
         """Stop the queue processing."""
@@ -237,7 +243,7 @@ class ExperimentQueue:
     
     def _queue_worker(self):
         """Main queue processing loop (runs in background thread)."""
-        logger.info("Queue worker started")
+        logger.info(f"🔄 Queue worker started - status: {self.status.value}")
         
         while self.status in [QueueStatus.RUNNING, QueueStatus.PAUSED]:
             try:
@@ -247,19 +253,27 @@ class ExperimentQueue:
                     
                     next_experiment = self.get_next_pending_experiment()
                     if next_experiment:
+                        logger.info(f"🎯 Queue worker starting experiment: {next_experiment.id}")
                         self._start_experiment(next_experiment)
+                    # Log when no experiments are pending
+                    elif len(self.experiments) == 0:
+                        logger.debug("Queue worker: no experiments in queue")
+                    else:
+                        logger.debug(f"Queue worker: {len([e for e in self.experiments if e.status == ExperimentStatus.PENDING])} pending experiments")
                 
-                # Check for completed experiments
+                # Check for completed experiments (currently no-op but keeping for future)
                 self._check_completed_experiments()
                 
                 # Wait before next iteration
                 time.sleep(5)
                 
             except Exception as e:
-                logger.error(f"Queue worker error: {e}")
+                logger.error(f"❌ Queue worker error: {e}")
+                import traceback
+                traceback.print_exc()
                 time.sleep(10)  # Wait longer on error
         
-        logger.info("Queue worker stopped")
+        logger.info(f"🛑 Queue worker stopped - final status: {self.status.value}")
     
     def _start_experiment(self, experiment: QueuedExperiment):
         """Start running an experiment."""

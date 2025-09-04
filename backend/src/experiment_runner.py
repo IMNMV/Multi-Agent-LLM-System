@@ -479,6 +479,9 @@ class UnifiedExperimentRunner:
             # Handle MockClient instances
             if isinstance(client, MockClient):
                 logger.info(f"Using mock client for {model}")
+                # Add realistic delay to simulate API call
+                import time
+                time.sleep(2.0)  # 2 second delay per API call
                 messages = [{"role": "user", "content": full_prompt}]
                 response = client.chat_completion(messages, temperature=temperature, max_tokens=max_tokens)
                 return response['choices'][0]['message']['content']
