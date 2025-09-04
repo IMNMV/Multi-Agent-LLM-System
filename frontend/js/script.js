@@ -1116,9 +1116,13 @@ async function confirmAndStartExperiment() {
 async function updateExperimentsList() {
     const response = await apiCall('/experiments/');
     
-    // Backend returns experiments directly: {"experiments": [...]}
+    // Backend returns experiments array: {"experiments": [...]}
+    // Convert to object with experiment IDs as keys: {experiment_id: experiment_data}
     if (response && response.experiments !== undefined) {
-        currentExperiments = response.experiments;
+        currentExperiments = {};
+        response.experiments.forEach(experiment => {
+            currentExperiments[experiment.id] = experiment;
+        });
         renderExperiments();
         updateResultsSelect();
     }
