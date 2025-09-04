@@ -226,13 +226,13 @@ async def upload_file(request: Request):
         return {
             "success": True,
             "message": "File uploaded and validated successfully",
-            "file_info": {
+            "data": {
+                "file_path": f"/uploads/{filename}",  # Frontend expects this
                 "filename": filename,
                 "domain": domain,
                 "size": len(file_content),
                 "validation": validation_result
-            },
-            "validation": validation_result
+            }
         }
     
     except HTTPException:
