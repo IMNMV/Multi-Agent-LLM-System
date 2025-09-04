@@ -24,8 +24,8 @@ from .api.queue import router as queue_router
 from .api.health import router as health_router
 from .api.downloads import router as downloads_router
 from .api.sessions import router as sessions_router
-# Re-enabling routers one by one for debugging
-from .api.uploads import router as uploads_router
+# Test with simple uploads router
+from .api.uploads_simple import router as uploads_router
 # from .api.visualizations import router as visualizations_router
 
 # Configure logging
@@ -154,7 +154,7 @@ app.include_router(sessions_router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(experiments_router, prefix="/api/experiments", tags=["experiments"])
 app.include_router(queue_router, prefix="/api/queue", tags=["queue"])
 app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"])
-# Re-enabling routers one by one for debugging  
+# Test with simple uploads router
 app.include_router(uploads_router, prefix="/api", tags=["uploads"])
 # app.include_router(visualizations_router, prefix="/api/visualizations", tags=["visualizations"])
 
