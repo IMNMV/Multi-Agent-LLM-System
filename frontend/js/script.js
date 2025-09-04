@@ -706,8 +706,14 @@ async function handleFileUpload(file) {
         console.log("🔧 DEBUG: Found row count:", rowCount);
         currentConfig.estimated_articles = rowCount;
         console.log("🔧 DEBUG: Set estimated_articles to:", currentConfig.estimated_articles);
-        validateConfiguration();
         
+        // STORE SESSION ID FOR EXPERIMENTS
+        if (response.data.session_id) {
+            localStorage.setItem('dataset_session_id', response.data.session_id);
+            console.log("🔧 DEBUG: Stored session ID:", response.data.session_id.substring(0, 8) + "...");
+        }
+        
+        validateConfiguration();
         showToast('File uploaded successfully', 'success');
     } else {
         showToast(`Upload failed: ${response.error}`, 'error');
@@ -1068,7 +1074,7 @@ async function confirmAndStartExperiment() {
         temperature: frontendConfig.temperature,
         num_articles: frontendConfig.num_articles,
         priority: 5, // Default priority
-        session_id: sessionManager ? sessionManager.getSessionId() : null, // Add session ID for API keys
+        session_id: localStorage.getItem('dataset_session_id') || (sessionManager ? sessionManager.getSessionId() : null), // Use dataset session ID
         dataset_path: frontendConfig.dataset_path // Add dataset path
         // Remove fields backend doesn't need: selected_metrics, selected_adv_metrics, custom_prompt, max_turns, etc.
     };
