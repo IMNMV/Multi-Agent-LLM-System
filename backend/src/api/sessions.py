@@ -183,3 +183,4 @@ async def test_api_keys(api_keys: APIKeySet):
     except Exception as e:
         logger.error(f"Error testing API keys: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+

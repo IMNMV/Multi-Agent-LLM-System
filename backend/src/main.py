@@ -25,6 +25,7 @@ from .api.health import router as health_router
 from .api.downloads import router as downloads_router
 from .api.sessions import router as sessions_router
 from .api.uploads import router as uploads_router
+from .api.visualizations import router as visualizations_router
 
 # Configure logging
 logging.basicConfig(
@@ -153,6 +154,7 @@ app.include_router(experiments_router, prefix="/api/experiments", tags=["experim
 app.include_router(queue_router, prefix="/api/queue", tags=["queue"])
 app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"])
 app.include_router(uploads_router, prefix="/api", tags=["uploads"])
+app.include_router(visualizations_router, prefix="/api/visualizations", tags=["visualizations"])
 
 # Root endpoint
 @app.get("/")
@@ -164,6 +166,27 @@ async def root():
         "docs": "/docs",
         "health": "/api/health"
     }
+
+# API Keys endpoint
+@app.post("/api/keys")
+async def save_api_keys(request: dict):
+    """Save API keys (placeholder - just acknowledge receipt)."""
+    try:
+        # In a production system, you might validate and temporarily store these
+        # For now, just acknowledge receipt since the frontend handles storage
+        logger.info("API keys received and acknowledged")
+        
+        return {
+            "success": True,
+            "message": "API keys received successfully"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error receiving API keys: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 # Configuration endpoints
 @app.get("/api/config/domains")
