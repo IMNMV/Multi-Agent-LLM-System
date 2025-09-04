@@ -5,6 +5,7 @@ const API_BASE_URL = 'https://multi-agent-llm-system-production.up.railway.app/a
 let currentExperiments = {};
 let currentConfig = {};
 let queueConfig = {}; // Separate configuration for queue system
+let sessionManager = null; // Session manager for API keys
 
 // DOM Elements
 let elements = {};
@@ -13,6 +14,15 @@ let elements = {};
 document.addEventListener('DOMContentLoaded', function() {
     initializeElements();
     initializeEventListeners();
+    
+    // Initialize session manager for API keys
+    if (typeof SessionManager !== 'undefined') {
+        sessionManager = new SessionManager(API_BASE_URL);
+        console.log('✅ Session manager initialized');
+    } else {
+        console.warn('⚠️ SessionManager not available - experiments may not work with API keys');
+    }
+    
     loadSavedApiKeys(); // Load API keys from session storage
     loadConfiguration();
     updateTemperatureDisplay();
@@ -1057,7 +1067,9 @@ async function confirmAndStartExperiment() {
         adversarial: frontendConfig.adversarial,
         temperature: frontendConfig.temperature,
         num_articles: frontendConfig.num_articles,
-        priority: 5 // Default priority
+        priority: 5, // Default priority
+        session_id: sessionManager ? sessionManager.getSessionId() : null, // Add session ID for API keys
+        dataset_path: frontendConfig.dataset_path // Add dataset path
         // Remove fields backend doesn't need: selected_metrics, selected_adv_metrics, custom_prompt, max_turns, etc.
     };
     

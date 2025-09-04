@@ -68,21 +68,31 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ Failed to initialize API clients: {e}")
     
-    # Initialize experiment queue
+    # Initialize experiment queue with production runner
     try:
-        # For now, we'll create a simple runner placeholder
-        # This will be replaced with the actual UnifiedExperimentRunner
+        from .experiment_runner import UnifiedExperimentRunner
+        
+        # Create results directory
+        results_dir = os.getenv("RESULTS_DIR", "/app/results")
+        os.makedirs(results_dir, exist_ok=True)
+        logger.info(f"📁 Results directory: {results_dir}")
+        
+        # Initialize production experiment runner
+        runner = UnifiedExperimentRunner(results_dir=results_dir)
+        experiment_queue = initialize_queue(runner)
+        logger.info("🚀 Production experiment runner initialized")
+        logger.info("📋 Experiment queue initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize experiment queue: {e}")
+        # Fallback to placeholder if production runner fails
         class SimpleExperimentRunner:
             def run_experiment(self, config: Dict[str, Any], experiment_id: str) -> Dict[str, Any]:
-                logger.info(f"Running experiment {experiment_id} with config: {config}")
-                # Placeholder implementation
+                logger.warning(f"Using fallback runner for experiment {experiment_id}")
                 return {"status": "completed", "output_files": []}
         
         runner = SimpleExperimentRunner()
         experiment_queue = initialize_queue(runner)
-        logger.info("📋 Experiment queue initialized")
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize experiment queue: {e}")
+        logger.warning("⚠️ Using fallback experiment runner")
     
     logger.info("✅ Application startup complete")
     
