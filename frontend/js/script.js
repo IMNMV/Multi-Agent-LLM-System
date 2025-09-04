@@ -1026,38 +1026,53 @@ async function confirmAndStartExperiment() {
     
     console.log('🔧 DEBUG: Raw currentConfig:', currentConfig);
     console.log('🔧 DEBUG: pendingExperiment keys:', Object.keys(currentConfig.pendingExperiment));
-    console.log('🔧 DEBUG: Sending experiment config:', currentConfig.pendingExperiment);
+    console.log('🔧 DEBUG: Original experiment config:', currentConfig.pendingExperiment);
     
-    // Test JSON stringification
-    try {
-        const jsonString = JSON.stringify(currentConfig.pendingExperiment, null, 2);
-        console.log('🔧 DEBUG: Stringified config:', jsonString);
-        console.log('🔧 DEBUG: Stringified length:', jsonString.length);
-    } catch (error) {
-        console.error('❌ ERROR: Cannot stringify config:', error);
-        showToast('Config serialization error', 'error');
-        return;
-    }
+    // Convert frontend format to backend format
+    const frontendConfig = currentConfig.pendingExperiment;
     
     // Validate the config has required fields
-    const config = currentConfig.pendingExperiment;
     console.log('🔧 DEBUG: Validating required fields:');
-    console.log('  - domain:', config.domain);
-    console.log('  - dataset_path:', config.dataset_path);
-    console.log('  - experiment_types:', config.experiment_types);
+    console.log('  - domain:', frontendConfig.domain);
+    console.log('  - dataset_path:', frontendConfig.dataset_path);
+    console.log('  - experiment_types:', frontendConfig.experiment_types);
     
-    if (!config.domain || !config.dataset_path || !config.experiment_types) {
+    if (!frontendConfig.domain || !frontendConfig.dataset_path || !frontendConfig.experiment_types || frontendConfig.experiment_types.length === 0) {
         console.error('❌ ERROR: Missing required fields in experiment config:', {
-            domain: config.domain,
-            dataset_path: config.dataset_path,
-            experiment_types: config.experiment_types
+            domain: frontendConfig.domain,
+            dataset_path: frontendConfig.dataset_path,
+            experiment_types: frontendConfig.experiment_types
         });
         showToast('Invalid experiment configuration', 'error');
         return;
     }
     
-    // Get the config before closing modal (which clears it)
-    const experimentConfig = currentConfig.pendingExperiment;
+    // Convert to backend expected format
+    const backendConfig = {
+        name: `${frontendConfig.domain} experiment - ${frontendConfig.experiment_types[0]}`, // Generate a name
+        domain: frontendConfig.domain,
+        experiment_type: frontendConfig.experiment_types[0], // Take first experiment type (single value)
+        models: frontendConfig.models,
+        context_strategy: frontendConfig.context_injection_strategy, // Renamed field
+        adversarial: frontendConfig.adversarial,
+        temperature: frontendConfig.temperature,
+        num_articles: frontendConfig.num_articles,
+        priority: 5 // Default priority
+        // Remove fields backend doesn't need: selected_metrics, selected_adv_metrics, custom_prompt, max_turns, etc.
+    };
+    
+    console.log('🔧 DEBUG: Converted backend config:', backendConfig);
+    
+    // Test JSON stringification
+    try {
+        const jsonString = JSON.stringify(backendConfig, null, 2);
+        console.log('🔧 DEBUG: Stringified backend config:', jsonString);
+        console.log('🔧 DEBUG: Stringified length:', jsonString.length);
+    } catch (error) {
+        console.error('❌ ERROR: Cannot stringify backend config:', error);
+        showToast('Config serialization error', 'error');
+        return;
+    }
     
     // Close modal
     closeAnalyticsModal();
@@ -1065,7 +1080,7 @@ async function confirmAndStartExperiment() {
     // Start the experiment
     showLoading('Starting experiment...');
     
-    const response = await apiCall('/experiments/start', 'POST', experimentConfig);
+    const response = await apiCall('/experiments/start', 'POST', backendConfig);
     
     hideLoading();
     
