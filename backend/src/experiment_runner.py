@@ -8,19 +8,31 @@ import csv
 import json
 import os
 import uuid
-import asyncio
-import aiohttp
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
 
-from .utils.session_manager import get_session_manager
-from .unified_utils import get_api_clients
-from .unified_config import get_config_manager
-
 logger = logging.getLogger(__name__)
+
+try:
+    from .utils.session_manager import get_session_manager
+except ImportError:
+    logger.error("Failed to import session_manager")
+    get_session_manager = None
+
+try:
+    from .unified_utils import get_api_clients
+except ImportError:
+    logger.error("Failed to import unified_utils")
+    get_api_clients = None
+
+try:
+    from .unified_config import get_config_manager
+except ImportError:
+    logger.error("Failed to import unified_config")
+    get_config_manager = None
 
 class UnifiedExperimentRunner:
     """Production experiment runner with real AI processing."""
@@ -28,8 +40,21 @@ class UnifiedExperimentRunner:
     def __init__(self, results_dir: str = "/app/results"):
         self.results_dir = Path(results_dir)
         self.results_dir.mkdir(parents=True, exist_ok=True)
-        self.session_manager = get_session_manager()
-        self.config_manager = get_config_manager()
+        
+        # Initialize managers with fallback handling
+        try:
+            self.session_manager = get_session_manager() if get_session_manager else None
+            self.config_manager = get_config_manager() if get_config_manager else None
+            
+            if not self.session_manager:
+                logger.warning("⚠️ Session manager not available - API keys may not work")
+            if not self.config_manager:
+                logger.warning("⚠️ Config manager not available - using fallback config")
+                
+        except Exception as e:
+            logger.error(f"Failed to initialize managers: {e}")
+            self.session_manager = None
+            self.config_manager = None
         
     def run_experiment(self, config: Dict[str, Any], experiment_id: str) -> Dict[str, Any]:
         """Run a complete experiment with real AI processing."""
