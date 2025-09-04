@@ -1084,12 +1084,20 @@ async function confirmAndStartExperiment() {
     
     hideLoading();
     
-    if (response.success) {
-        showToast('Experiment started successfully', 'success');
+    console.log('🔧 DEBUG: Full response from /experiments/start:', response);
+    
+    // Backend returns ExperimentResponse format: {experiment_id, status, message, estimated_duration_minutes}
+    // Check for experiment_id to determine success (status 200 means the request was successful)
+    if (response && response.experiment_id) {
+        showToast(`Experiment started successfully: ${response.message || 'Queued for processing'}`, 'success');
+        console.log(`✅ DEBUG: Experiment created with ID: ${response.experiment_id}, status: ${response.status}`);
         switchSection('experiments');
         updateExperimentsList();
     } else {
-        showToast(`Failed to start experiment: ${response.error}`, 'error');
+        // Handle error case - if we get here, check if response has error details
+        const errorMsg = response?.detail || response?.message || response?.error || 'Unknown error';
+        console.error('❌ ERROR: Experiment start failed:', response);
+        showToast(`Failed to start experiment: ${errorMsg}`, 'error');
     }
 }
 
