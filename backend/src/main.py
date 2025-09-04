@@ -158,65 +158,45 @@ app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"]
 # app.include_router(uploads_router, prefix="/api", tags=["uploads"])
 # app.include_router(visualizations_router, prefix="/api/visualizations", tags=["visualizations"])
 
-# Add working file upload endpoint directly in main.py
-@app.post("/api/upload")  
+# Add working file upload endpoint with python-multipart support
+@app.post("/api/upload")
 async def upload_file(request: Request):
-    """Working file upload endpoint using raw request handling."""
+    """File upload endpoint with improved parsing."""
     try:
-        # Get the content type
+        # Check content type
         content_type = request.headers.get("content-type", "")
+        logger.info(f"Upload request content-type: {content_type}")
+        
         if not content_type.startswith("multipart/form-data"):
             raise HTTPException(status_code=400, detail="Must be multipart/form-data")
         
-        # Read the raw body
-        body = await request.body()
+        # Use FastAPI's internal form parsing
+        from fastapi import Form
+        from starlette.datastructures import FormData
         
-        if not body:
-            raise HTTPException(status_code=400, detail="No file data received")
+        # Parse form data manually
+        form = await request.form()
+        logger.info(f"Form keys: {list(form.keys())}")
         
-        # Extract boundary
-        boundary = None
-        for part in content_type.split(";"):
-            if "boundary=" in part:
-                boundary = part.split("boundary=")[1].strip()
-                break
+        # Get file from form
+        file = form.get("file")
+        domain = form.get("domain", "unknown")
         
-        if not boundary:
-            raise HTTPException(status_code=400, detail="No boundary found in content-type")
+        if not file or not hasattr(file, 'filename'):
+            raise HTTPException(status_code=400, detail="No file uploaded")
         
-        # Parse multipart data
-        body_str = body.decode('utf-8', errors='ignore')
-        parts = body_str.split(f"--{boundary}")
+        filename = file.filename
+        if not filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
         
-        file_content = None
-        filename = None
-        domain = None
+        # Read file content
+        content = await file.read()
+        if isinstance(content, bytes):
+            file_content = content.decode('utf-8', errors='ignore')
+        else:
+            file_content = str(content)
         
-        for part in parts:
-            if 'name="file"' in part and 'filename=' in part:
-                # Extract filename
-                lines = part.split('\n')
-                for line in lines:
-                    if 'filename=' in line:
-                        filename = line.split('filename=')[1].strip().strip('"')
-                        break
-                
-                # Extract file content (after double newline)
-                content_start = part.find('\n\n')
-                if content_start != -1:
-                    file_content = part[content_start+2:].strip()
-            
-            elif 'name="domain"' in part:
-                # Extract domain value
-                content_start = part.find('\n\n')
-                if content_start != -1:
-                    domain = part[content_start+2:].strip()
-        
-        if not filename or not file_content:
-            raise HTTPException(status_code=400, detail="No file data found")
-        
-        if not domain:
-            domain = "unknown"
+        logger.info(f"Uploaded file: {filename}, size: {len(file_content)}, domain: {domain}")
         
         # Validate file type
         valid_extensions = ['.csv', '.tsv', '.txt', '.json']
