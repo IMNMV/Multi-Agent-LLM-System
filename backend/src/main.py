@@ -24,8 +24,8 @@ from .api.queue import router as queue_router
 from .api.health import router as health_router
 from .api.downloads import router as downloads_router
 from .api.sessions import router as sessions_router
-# Test with simple uploads router
-from .api.uploads_simple import router as uploads_router
+# Disable uploads router completely - FastAPI file upload issue
+# from .api.uploads_simple import router as uploads_router
 # from .api.visualizations import router as visualizations_router
 
 # Configure logging
@@ -154,9 +154,30 @@ app.include_router(sessions_router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(experiments_router, prefix="/api/experiments", tags=["experiments"])
 app.include_router(queue_router, prefix="/api/queue", tags=["queue"])
 app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"])
-# Test with simple uploads router
-app.include_router(uploads_router, prefix="/api", tags=["uploads"])
+# Disable uploads router completely - FastAPI file upload issue  
+# app.include_router(uploads_router, prefix="/api", tags=["uploads"])
 # app.include_router(visualizations_router, prefix="/api/visualizations", tags=["visualizations"])
+
+# Add placeholder endpoints directly in main.py
+@app.post("/api/upload")
+async def simple_upload():
+    """Placeholder upload endpoint."""
+    return {"success": False, "error": "File upload not implemented yet"}
+
+@app.get("/api/visualizations/available-files")
+async def get_viz_files():
+    """Placeholder visualization files endpoint."""
+    return {"success": True, "data": {"files": [], "count": 0}}
+
+@app.post("/api/visualizations/auto-detect-type")
+async def auto_detect_viz():
+    """Placeholder auto-detect endpoint."""
+    return {"success": False, "error": "Auto-detection not implemented yet"}
+
+@app.post("/api/visualizations/create")
+async def create_viz():
+    """Placeholder create visualizations endpoint."""
+    return {"success": False, "error": "Visualization creation not implemented yet"}
 
 # Root endpoint
 @app.get("/")
