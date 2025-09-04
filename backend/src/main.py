@@ -297,6 +297,37 @@ async def root():
         "health": "/api/health"
     }
 
+# Debug endpoint
+@app.get("/api/debug/runner-status")
+async def get_runner_status():
+    """Get current experiment runner status for debugging."""
+    try:
+        global experiment_queue
+        if not experiment_queue:
+            return {"error": "No experiment queue initialized"}
+        
+        runner_info = {
+            "queue_initialized": experiment_queue is not None,
+            "queue_status": experiment_queue.status.value if experiment_queue else "none",
+            "runner_type": type(experiment_queue.experiment_runner).__name__ if experiment_queue.experiment_runner else "none",
+            "max_concurrent": experiment_queue.max_concurrent if experiment_queue else 0,
+            "current_experiments": len(experiment_queue.experiments) if experiment_queue else 0,
+            "running_experiments": len(experiment_queue.running_experiments) if experiment_queue else 0,
+        }
+        
+        # Check if it's the production runner
+        if hasattr(experiment_queue.experiment_runner, 'results_dir'):
+            runner_info["is_production_runner"] = True
+            runner_info["results_directory"] = str(experiment_queue.experiment_runner.results_dir)
+        else:
+            runner_info["is_production_runner"] = False
+        
+        return {"runner_info": runner_info}
+        
+    except Exception as e:
+        logger.error(f"Error getting runner status: {e}")
+        return {"error": str(e)}
+
 # API Keys endpoint
 @app.post("/api/keys")
 async def save_api_keys(request: dict):
