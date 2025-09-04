@@ -34,30 +34,7 @@ except ImportError:
     logger.error("Failed to import unified_config")
     get_config_manager = None
 
-class MockClient:
-    """Mock AI client for testing when real clients are unavailable."""
-    def __init__(self, model_name: str):
-        self.model_name = model_name
-    
-    def chat_completion(self, messages: List[Dict], **kwargs) -> Dict[str, Any]:
-        """Mock chat completion that returns a realistic response."""
-        return {
-            'choices': [{
-                'message': {
-                    'content': f"This is a mock response from {self.model_name}. Analysis indicates the provided text shows characteristics consistent with the requested evaluation."
-                }
-            }],
-            'usage': {'total_tokens': 50}
-        }
-    
-    def completion(self, prompt: str, **kwargs) -> Dict[str, Any]:
-        """Mock completion for older API formats."""
-        return {
-            'choices': [{
-                'text': f"Mock analysis from {self.model_name}: The content appears to be legitimate based on standard evaluation criteria."
-            }],
-            'usage': {'total_tokens': 40}
-        }
+# REMOVED MOCKCLIENT - NO FAKE DATA ALLOWED
 
 class UnifiedExperimentRunner:
     """Production experiment runner with real AI processing."""
@@ -113,23 +90,9 @@ class UnifiedExperimentRunner:
                     logger.warning(f"Failed to get domain config for {domain}: {e}")
                     domain_config = None
             
-            # Use fallback config if needed
+            # FAIL if no domain config - NO FALLBACKS
             if not domain_config:
-                logger.warning(f"Using fallback configuration for domain '{domain}'")
-                domain_config = {
-                    'enabled': True,
-                    'name': domain,
-                    'api_configs': {
-                        'gpt-3.5-turbo': {'provider': 'openai'},
-                        'gpt-4': {'provider': 'openai'},
-                        'claude-3-haiku': {'provider': 'anthropic'}
-                    },
-                    'system_prompts': {
-                        'single': f'You are an AI assistant helping with {domain} analysis.',
-                        'dual': f'You are participating in a {domain} analysis discussion.',
-                        'consensus': f'You are working to reach consensus on {domain} analysis.'
-                    }
-                }
+                raise ValueError(f"FAILED: Domain '{domain}' configuration not found. Check domain setup.")
             
             # Get API keys from session (if provided)
             api_keys = None
@@ -148,15 +111,13 @@ class UnifiedExperimentRunner:
                 except Exception as e:
                     logger.warning(f"Failed to initialize API clients: {e}")
             
-            # Create fallback mock clients if needed
+            # FAIL if no real API clients available - NO MOCK FALLBACKS
             if not clients:
-                logger.warning("No API clients available, using mock clients for testing")
-                clients = {model: MockClient(model) for model in models}
+                raise ValueError("FAILED: No API clients available. Provide working API keys.")
             
             available_models = [model for model in models if model in clients]
             if not available_models:
-                logger.warning(f"No clients available for {models}, using first model as fallback")
-                available_models = models[:1]  # Use first model as fallback
+                raise ValueError(f"FAILED: No API clients available for models {models}. Check your API keys.")
             
             logger.info(f"🔧 Processing with models: {available_models}")
             
@@ -189,11 +150,9 @@ class UnifiedExperimentRunner:
                     logger.error(f"Failed to load dataset {dataset_path}: {e}")
                     dataset_path = None
             
-            # Use fallback dataset if no dataset loaded
+            # FAIL if no dataset loaded - NO FAKE DATA FALLBACKS
             if not dataset:
-                logger.info(f"Using fallback dataset for domain '{domain}'")
-                dataset = self._create_fallback_dataset(domain, experiment_type)
-                logger.info(f"📊 Created fallback dataset with {len(dataset)} rows")
+                raise ValueError(f"FAILED: No dataset found at {config.get('dataset_path')}. Upload a real dataset file.")
             
             # Process dataset through AI models
             results = self._process_dataset(
@@ -276,53 +235,7 @@ class UnifiedExperimentRunner:
         
         return dataset_path if os.path.exists(dataset_path) else None
     
-    def _create_fallback_dataset(self, domain: str, experiment_type: str) -> List[Dict[str, Any]]:
-        """Create a fallback dataset for testing when no dataset is provided."""
-        if domain == 'fake_news':
-            return [
-                {
-                    'text': 'Breaking: Local cat elected mayor after promising more tuna for all citizens',
-                    'label': 'fake',
-                    'source': 'fallback_data'
-                },
-                {
-                    'text': 'Scientists at MIT have developed a new renewable energy technology using solar panels',
-                    'label': 'real', 
-                    'source': 'fallback_data'
-                },
-                {
-                    'text': 'Weather report shows 30% chance of rain tomorrow with temperatures around 72°F',
-                    'label': 'real',
-                    'source': 'fallback_data'
-                }
-            ]
-        elif domain == 'ai_text_detection':
-            return [
-                {
-                    'text': 'This is a sample text that could be either human-written or AI-generated for testing purposes.',
-                    'label': 'human',
-                    'source': 'fallback_data'
-                },
-                {
-                    'text': 'The intricate patterns of data analysis reveal sophisticated insights into the underlying mechanisms of the system.',
-                    'label': 'ai',
-                    'source': 'fallback_data'
-                }
-            ]
-        else:
-            # Generic fallback
-            return [
-                {
-                    'text': f'Sample text for {domain} analysis experiment',
-                    'label': 'unknown',
-                    'source': 'fallback_data'
-                },
-                {
-                    'text': f'Another sample for {domain} domain testing',
-                    'label': 'unknown', 
-                    'source': 'fallback_data'
-                }
-            ]
+# REMOVED _create_fallback_dataset - NO FAKE DATA ALLOWED
     
     def _load_dataset(self, file_path: str) -> List[Dict[str, Any]]:
         """Load dataset from CSV file."""
@@ -485,15 +398,7 @@ class UnifiedExperimentRunner:
             # Construct full prompt
             full_prompt = f"{prompt}\n\nContent to analyze:\n{content}\n\nProvide your analysis:"
             
-            # Handle MockClient instances
-            if isinstance(client, MockClient):
-                logger.info(f"Using mock client for {model}")
-                # Add realistic delay to simulate API call
-                import time
-                time.sleep(2.0)  # 2 second delay per API call
-                messages = [{"role": "user", "content": full_prompt}]
-                response = client.chat_completion(messages, temperature=temperature, max_tokens=max_tokens)
-                return response['choices'][0]['message']['content']
+# REMOVED MOCKCLIENT HANDLING - REAL APIS ONLY
             
             # Model-specific API calls
             if model == 'claude' and hasattr(client, 'messages'):

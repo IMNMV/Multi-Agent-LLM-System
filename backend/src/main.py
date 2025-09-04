@@ -83,16 +83,9 @@ async def lifespan(app: FastAPI):
         logger.info("🚀 Production experiment runner initialized")
         logger.info("📋 Experiment queue initialized")
     except Exception as e:
-        logger.error(f"❌ Failed to initialize experiment queue: {e}")
-        # Fallback to placeholder if production runner fails
-        class SimpleExperimentRunner:
-            def run_experiment(self, config: Dict[str, Any], experiment_id: str) -> Dict[str, Any]:
-                logger.warning(f"Using fallback runner for experiment {experiment_id}")
-                return {"status": "completed", "output_files": []}
-        
-        runner = SimpleExperimentRunner()
-        experiment_queue = initialize_queue(runner)
-        logger.warning("⚠️ Using fallback experiment runner")
+        logger.error(f"❌ CRITICAL: Failed to initialize experiment queue: {e}")
+        # FAIL HARD - NO FALLBACK RUNNERS
+        raise RuntimeError(f"PRODUCTION SYSTEM FAILED TO START: {e}")
     
     logger.info("✅ Application startup complete")
     
@@ -278,14 +271,17 @@ async def upload_file(request: Request):
                 if first_line:
                     validation_result["statistics"]["columns"] = first_line.split(',')
         
+        # FAIL if file couldn't be saved - NO FALLBACKS
+        if not file_path:
+            raise HTTPException(status_code=500, detail="FAILED: Could not save uploaded file to disk")
+            
         return {
             "success": True,
             "message": "File uploaded and validated successfully",
             "data": {
-                "file_path": str(file_path) if file_path else f"/uploads/{filename}",  # Fallback to virtual path
+                "file_path": str(file_path),  # ONLY REAL PATHS
                 "original_filename": filename,
-                "saved_filename": safe_filename if 'safe_filename' in locals() else filename,
-                "saved_to_disk": file_path is not None,
+                "saved_filename": safe_filename,
                 "domain": domain,
                 "size": len(file_content),
                 "validation": validation_result
