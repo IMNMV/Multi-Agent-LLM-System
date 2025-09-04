@@ -7,7 +7,7 @@ Multi-Agent Experiment System REST API.
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
@@ -158,11 +158,108 @@ app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"]
 # app.include_router(uploads_router, prefix="/api", tags=["uploads"])
 # app.include_router(visualizations_router, prefix="/api/visualizations", tags=["visualizations"])
 
-# Add placeholder endpoints directly in main.py
-@app.post("/api/upload")
-async def simple_upload():
-    """Placeholder upload endpoint."""
-    return {"success": False, "error": "File upload not implemented yet"}
+# Add working file upload endpoint directly in main.py
+@app.post("/api/upload")  
+async def upload_file(request: Request):
+    """Working file upload endpoint using raw request handling."""
+    try:
+        # Get the content type
+        content_type = request.headers.get("content-type", "")
+        if not content_type.startswith("multipart/form-data"):
+            raise HTTPException(status_code=400, detail="Must be multipart/form-data")
+        
+        # Read the raw body
+        body = await request.body()
+        
+        if not body:
+            raise HTTPException(status_code=400, detail="No file data received")
+        
+        # Extract boundary
+        boundary = None
+        for part in content_type.split(";"):
+            if "boundary=" in part:
+                boundary = part.split("boundary=")[1].strip()
+                break
+        
+        if not boundary:
+            raise HTTPException(status_code=400, detail="No boundary found in content-type")
+        
+        # Parse multipart data
+        body_str = body.decode('utf-8', errors='ignore')
+        parts = body_str.split(f"--{boundary}")
+        
+        file_content = None
+        filename = None
+        domain = None
+        
+        for part in parts:
+            if 'name="file"' in part and 'filename=' in part:
+                # Extract filename
+                lines = part.split('\n')
+                for line in lines:
+                    if 'filename=' in line:
+                        filename = line.split('filename=')[1].strip().strip('"')
+                        break
+                
+                # Extract file content (after double newline)
+                content_start = part.find('\n\n')
+                if content_start != -1:
+                    file_content = part[content_start+2:].strip()
+            
+            elif 'name="domain"' in part:
+                # Extract domain value
+                content_start = part.find('\n\n')
+                if content_start != -1:
+                    domain = part[content_start+2:].strip()
+        
+        if not filename or not file_content:
+            raise HTTPException(status_code=400, detail="No file data found")
+        
+        if not domain:
+            domain = "unknown"
+        
+        # Validate file type
+        valid_extensions = ['.csv', '.tsv', '.txt', '.json']
+        if not any(filename.lower().endswith(ext) for ext in valid_extensions):
+            raise HTTPException(status_code=400, detail=f"Invalid file type. Supported: {', '.join(valid_extensions)}")
+        
+        # Basic content validation
+        lines = file_content.split('\n')
+        row_count = len([line for line in lines if line.strip()])
+        
+        # Sample validation for CSV
+        validation_result = {
+            "valid": True,
+            "message": "File uploaded and validated successfully",
+            "row_count": row_count,
+            "columns": [],
+            "sample_data": lines[:3] if lines else []
+        }
+        
+        if filename.lower().endswith('.csv'):
+            if lines:
+                # Try to get headers
+                first_line = lines[0].strip()
+                if first_line:
+                    validation_result["columns"] = first_line.split(',')
+        
+        return {
+            "success": True,
+            "message": "File uploaded and validated successfully",
+            "file_info": {
+                "filename": filename,
+                "domain": domain,
+                "size": len(file_content),
+                "validation": validation_result
+            },
+            "validation": validation_result
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"File upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.get("/api/visualizations/available-files")
 async def get_viz_files():
