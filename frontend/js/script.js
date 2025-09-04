@@ -748,6 +748,13 @@ function displayValidationResults(validation) {
     const container = elements.validationResults;
     container.innerHTML = '';
     
+    // Add null check for validation object
+    if (!validation) {
+        console.error('🔧 DEBUG: Validation object is null or undefined');
+        container.innerHTML = '<div class="validation-error"><i class="fas fa-exclamation-triangle"></i>Validation data missing</div>';
+        return;
+    }
+    
     if (validation.is_valid) {
         container.innerHTML = `
             <div class="validation-success">
@@ -760,9 +767,14 @@ function displayValidationResults(validation) {
         html += '<i class="fas fa-exclamation-triangle"></i>';
         html += '<strong>Validation Issues:</strong><ul>';
         
-        validation.errors.forEach(error => {
-            html += `<li>${error}</li>`;
-        });
+        // Add null check for errors array
+        if (validation.errors && Array.isArray(validation.errors)) {
+            validation.errors.forEach(error => {
+                html += `<li>${error}</li>`;
+            });
+        } else {
+            html += '<li>Unknown validation error</li>';
+        }
         
         html += '</ul></div>';
         container.innerHTML = html;

@@ -211,7 +211,7 @@ async def upload_file(request: Request):
         validation_result = {
             "is_valid": True,
             "message": "File uploaded and validated successfully",
-            "errors": [],  # Frontend expects this array
+            "errors": [],  # Frontend expects this array - always present
             "statistics": {
                 "total_rows": row_count,
                 "columns": [],
