@@ -24,6 +24,7 @@ from .api.queue import router as queue_router
 from .api.health import router as health_router
 from .api.downloads import router as downloads_router
 from .api.sessions import router as sessions_router
+from .api.uploads import router as uploads_router
 
 # Configure logging
 logging.basicConfig(
@@ -151,6 +152,7 @@ app.include_router(sessions_router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(experiments_router, prefix="/api/experiments", tags=["experiments"])
 app.include_router(queue_router, prefix="/api/queue", tags=["queue"])
 app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"])
+app.include_router(uploads_router, prefix="/api", tags=["uploads"])
 
 # Root endpoint
 @app.get("/")

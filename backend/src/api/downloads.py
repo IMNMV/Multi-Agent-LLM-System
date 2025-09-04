@@ -19,7 +19,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.get("/experiments/{experiment_id}/results")
-async def download_experiment_results(experiment_id: str, format: str = "csv"):
+async def get_experiment_results(experiment_id: str, download: bool = False, format: str = "csv"):
     """Download results for a specific experiment."""
     try:
         queue = get_queue()
@@ -50,37 +50,62 @@ async def download_experiment_results(experiment_id: str, format: str = "csv"):
         if not os.path.exists(main_csv):
             raise HTTPException(status_code=404, detail="Result file not found on disk")
         
-        # Return file based on requested format
-        if format.lower() == "csv":
-            return FileResponse(
-                path=main_csv,
-                filename=f"experiment_{experiment_id}_results.csv",
-                media_type="text/csv",
-                headers={"Content-Disposition": f"attachment; filename=experiment_{experiment_id}_results.csv"}
-            )
+        # If download=True, return file for download
+        if download:
+            if format.lower() == "csv":
+                return FileResponse(
+                    path=main_csv,
+                    filename=f"experiment_{experiment_id}_results.csv",
+                    media_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=experiment_{experiment_id}_results.csv"}
+                )
+            
+            elif format.lower() == "json":
+                # Convert CSV to JSON for download
+                try:
+                    import pandas as pd
+                    df = pd.read_csv(main_csv)
+                    json_data = df.to_json(orient='records', indent=2)
+                except ImportError:
+                    # Fallback: simple CSV to JSON conversion without pandas
+                    import csv
+                    data = []
+                    with open(main_csv, 'r', encoding='utf-8') as f:
+                        reader = csv.DictReader(f)
+                        data = list(reader)
+                    json_data = json.dumps(data, indent=2)
+                
+                return Response(
+                    content=json_data,
+                    media_type="application/json",
+                    headers={"Content-Disposition": f"attachment; filename=experiment_{experiment_id}_results.json"}
+                )
         
-        elif format.lower() == "json":
-            # Convert CSV to JSON for download
+        else:
+            # Return JSON data for display in frontend
             try:
                 import pandas as pd
                 df = pd.read_csv(main_csv)
-                json_data = df.to_json(orient='records', indent=2)
+                data = df.to_dict('records')
             except ImportError:
-                # Fallback: simple CSV to JSON conversion without pandas
+                # Fallback: simple CSV reading without pandas
                 import csv
                 data = []
                 with open(main_csv, 'r', encoding='utf-8') as f:
                     reader = csv.DictReader(f)
                     data = list(reader)
-                json_data = json.dumps(data, indent=2)
             
-            return Response(
-                content=json_data,
-                media_type="application/json",
-                headers={"Content-Disposition": f"attachment; filename=experiment_{experiment_id}_results.json"}
-            )
+            return {
+                "success": True,
+                "data": {
+                    "experiment_id": experiment_id,
+                    "results": data,
+                    "file_count": len(experiment.result_files),
+                    "status": experiment.status.value
+                }
+            }
         
-        else:
+        if download and format.lower() not in ["csv", "json"]:
             raise HTTPException(status_code=400, detail="Unsupported format. Use 'csv' or 'json'")
     
     except Exception as e:

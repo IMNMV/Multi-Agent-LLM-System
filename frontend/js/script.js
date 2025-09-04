@@ -1153,7 +1153,7 @@ async function loadExperimentResults() {
     
     showLoading('Loading experiment results...');
     
-    const response = await apiCall(`/results/${experimentId}`);
+    const response = await apiCall(`/downloads/experiments/${experimentId}/results`);
     
     hideLoading();
     
