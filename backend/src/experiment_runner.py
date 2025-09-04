@@ -222,24 +222,50 @@ class UnifiedExperimentRunner:
             logger.error(f"❌ Experiment {experiment_id} failed: {e}")
             raise
     
-    def _resolve_dataset_path(self, virtual_path: str) -> Optional[str]:
-        """Resolve virtual upload paths to actual file locations."""
-        # Handle /uploads/filename paths
-        if virtual_path.startswith('/uploads/'):
-            filename = virtual_path.replace('/uploads/', '')
-            # In a real system, you'd have an uploads directory
-            uploads_dir = Path(os.getenv('UPLOADS_DIR', '/app/uploads'))
-            actual_path = uploads_dir / filename
-            
-            # For now, let's also check if it's in the project directory
-            if not actual_path.exists():
-                project_uploads = Path(__file__).parent.parent.parent / 'uploads' / filename
-                if project_uploads.exists():
-                    return str(project_uploads)
-            
-            return str(actual_path) if actual_path.exists() else None
+    def _resolve_dataset_path(self, dataset_path: str) -> Optional[str]:
+        """Resolve dataset paths to actual file locations."""
+        # If it's already an absolute path, check if it exists
+        if os.path.isabs(dataset_path) and os.path.exists(dataset_path):
+            return dataset_path
         
-        return virtual_path
+        # Handle virtual /uploads/filename paths (legacy format)
+        if dataset_path.startswith('/uploads/'):
+            filename = dataset_path.replace('/uploads/', '')
+            uploads_dir = Path(os.getenv('UPLOADS_DIR', '/app/uploads'))
+            
+            # Look for timestamped files (new format)
+            if uploads_dir.exists():
+                for file_path in uploads_dir.glob(f"*_{filename}"):
+                    if file_path.is_file():
+                        logger.info(f"Found timestamped file: {file_path}")
+                        return str(file_path)
+                
+                # Fallback to exact filename match
+                exact_path = uploads_dir / filename
+                if exact_path.exists():
+                    return str(exact_path)
+            
+            # Check project directory as fallback
+            project_uploads = Path(__file__).parent.parent.parent / 'uploads'
+            if project_uploads.exists():
+                for file_path in project_uploads.glob(f"*_{filename}"):
+                    if file_path.is_file():
+                        return str(file_path)
+                exact_path = project_uploads / filename
+                if exact_path.exists():
+                    return str(exact_path)
+            
+            return None
+        
+        # Handle relative paths
+        if not os.path.exists(dataset_path):
+            # Try uploads directory
+            uploads_dir = Path(os.getenv('UPLOADS_DIR', '/app/uploads'))
+            possible_path = uploads_dir / dataset_path
+            if possible_path.exists():
+                return str(possible_path)
+        
+        return dataset_path if os.path.exists(dataset_path) else None
     
     def _create_fallback_dataset(self, domain: str, experiment_type: str) -> List[Dict[str, Any]]:
         """Create a fallback dataset for testing when no dataset is provided."""

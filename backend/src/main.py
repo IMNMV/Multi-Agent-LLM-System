@@ -213,6 +213,22 @@ async def upload_file(request: Request):
         if not any(filename.lower().endswith(ext) for ext in valid_extensions):
             raise HTTPException(status_code=400, detail=f"Invalid file type. Supported: {', '.join(valid_extensions)}")
         
+        # Save file to uploads directory
+        uploads_dir = Path(os.getenv('UPLOADS_DIR', '/app/uploads'))
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create unique filename to avoid conflicts
+        import time
+        timestamp = int(time.time())
+        safe_filename = f"{timestamp}_{filename}"
+        file_path = uploads_dir / safe_filename
+        
+        # Write file content to disk
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(file_content)
+        
+        logger.info(f"💾 Saved uploaded file to: {file_path}")
+        
         # Basic content validation
         lines = file_content.split('\n')
         row_count = len([line for line in lines if line.strip()])
@@ -240,8 +256,9 @@ async def upload_file(request: Request):
             "success": True,
             "message": "File uploaded and validated successfully",
             "data": {
-                "file_path": f"/uploads/{filename}",  # Frontend expects this
-                "filename": filename,
+                "file_path": str(file_path),  # Return actual saved path
+                "original_filename": filename,
+                "saved_filename": safe_filename,
                 "domain": domain,
                 "size": len(file_content),
                 "validation": validation_result
