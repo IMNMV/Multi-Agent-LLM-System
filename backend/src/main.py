@@ -207,13 +207,16 @@ async def upload_file(request: Request):
         lines = file_content.split('\n')
         row_count = len([line for line in lines if line.strip()])
         
-        # Sample validation for CSV
+        # Frontend expects specific validation format
         validation_result = {
-            "valid": True,
+            "is_valid": True,
             "message": "File uploaded and validated successfully",
-            "row_count": row_count,
-            "columns": [],
-            "sample_data": lines[:3] if lines else []
+            "errors": [],  # Frontend expects this array
+            "statistics": {
+                "total_rows": row_count,
+                "columns": [],
+                "sample_data": lines[:3] if lines else []
+            }
         }
         
         if filename.lower().endswith('.csv'):
@@ -221,7 +224,7 @@ async def upload_file(request: Request):
                 # Try to get headers
                 first_line = lines[0].strip()
                 if first_line:
-                    validation_result["columns"] = first_line.split(',')
+                    validation_result["statistics"]["columns"] = first_line.split(',')
         
         return {
             "success": True,
