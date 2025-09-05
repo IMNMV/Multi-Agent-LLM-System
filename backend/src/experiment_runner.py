@@ -175,11 +175,18 @@ class UnifiedExperimentRunner:
                         raise ValueError("FAILED: No dataset provided. Upload a real dataset file.")
                 except Exception as e:
                     logger.error(f"Failed to load dataset {dataset_path}: {e}")
-                    dataset_path = None
+                    # Re-raise the exception instead of silently setting dataset_path to None
+                    # This will trigger the proper error handling in the calling code
+                    raise e
             
             # FAIL if no dataset loaded - NO FAKE DATA FALLBACKS
             if not dataset:
-                raise ValueError(f"FAILED: No dataset found at {config.get('dataset_path')}. Upload a real dataset file.")
+                # Check if we have dataset content in config that failed to parse
+                dataset_content = config.get('dataset_content')
+                if dataset_content:
+                    raise ValueError(f"FAILED: Dataset content was provided but failed to parse. Check CSV format.")
+                else:
+                    raise ValueError(f"FAILED: No dataset content provided in experiment configuration.")
             
             # Process dataset through AI models
             results = self._process_dataset(
