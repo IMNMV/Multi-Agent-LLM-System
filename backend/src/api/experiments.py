@@ -41,6 +41,29 @@ async def start_experiment(request: ExperimentRequest, background_tasks: Backgro
         if invalid_models:
             raise HTTPException(status_code=400, detail=f"Invalid models: {invalid_models}")
         
+        # Retrieve dataset content from SESSION_DATASETS and pass directly to avoid container isolation issues
+        dataset_content = None
+        if request.dataset_session_id and request.dataset_path:
+            try:
+                # Import main module to access SESSION_DATASETS
+                from ..main import SESSION_DATASETS
+                if request.dataset_session_id in SESSION_DATASETS:
+                    if request.dataset_path in SESSION_DATASETS[request.dataset_session_id]:
+                        dataset_content = SESSION_DATASETS[request.dataset_session_id][request.dataset_path]
+                        logger.info(f"✅ Retrieved dataset content for {request.dataset_path} ({len(dataset_content)} chars)")
+                    else:
+                        logger.error(f"❌ Dataset path {request.dataset_path} not found in session {request.dataset_session_id[:8]}...")
+                        logger.error(f"Available datasets: {list(SESSION_DATASETS[request.dataset_session_id].keys())}")
+                else:
+                    logger.error(f"❌ Dataset session {request.dataset_session_id[:8]}... not found")
+                    logger.error(f"Available sessions: {list(SESSION_DATASETS.keys())}")
+            except Exception as e:
+                logger.error(f"❌ Failed to retrieve dataset content: {e}")
+                raise HTTPException(status_code=400, detail=f"Failed to access uploaded dataset: {e}")
+        
+        if request.dataset_path and not dataset_content:
+            raise HTTPException(status_code=400, detail=f"Dataset not found. Please upload a dataset file first.")
+        
         # Create experiment configuration
         experiment_config = {
             "domain": request.domain,
@@ -53,6 +76,7 @@ async def start_experiment(request: ExperimentRequest, background_tasks: Backgro
             "session_id": request.session_id,  # Pass session ID for API keys
             "dataset_session_id": request.dataset_session_id,  # Pass dataset session ID for data access
             "dataset_path": request.dataset_path,  # Pass dataset path
+            "dataset_content": dataset_content,  # Pass actual dataset content directly
             "domain_config": domain_config
         }
         

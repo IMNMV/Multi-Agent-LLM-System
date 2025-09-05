@@ -160,9 +160,17 @@ class UnifiedExperimentRunner:
                         logger.info(f"✅ Dataset exists at original path: {dataset_path}")
                     
                     if dataset_path:
-                        # Use dataset_session_id for loading data, session_id is for API keys
-                        dataset = self._load_dataset(dataset_path, dataset_session_id)
-                        logger.info(f"📊 Successfully loaded dataset with {len(dataset)} rows from {dataset_path}")
+                        # Check if dataset content was passed directly in config (Railway fix)
+                        dataset_content = config.get('dataset_content')
+                        if dataset_content:
+                            logger.info(f"🚀 Using dataset content passed directly through config ({len(dataset_content)} chars)")
+                            dataset = self._parse_csv_content(dataset_content)
+                            logger.info(f"📊 Successfully parsed dataset with {len(dataset)} rows from direct content")
+                        else:
+                            # Fallback to session-based loading (may fail in Railway due to container isolation)
+                            logger.info(f"⚠️  Falling back to session-based dataset loading for {dataset_path}")
+                            dataset = self._load_dataset(dataset_path, dataset_session_id)
+                            logger.info(f"📊 Successfully loaded dataset with {len(dataset)} rows from {dataset_path}")
                     else:
                         logger.info("Dataset path is None, will use fallback data")
                 except Exception as e:
