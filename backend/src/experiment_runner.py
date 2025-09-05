@@ -201,26 +201,30 @@ class UnifiedExperimentRunner:
                 progress_callback=self.progress_callback
             )
             
-            # Generate result files
-            output_files = self._generate_result_files(
+            # Generate metadata and metrics (no file generation)
+            metadata = self._generate_metadata(
                 experiment_id=experiment_id,
-                results=results,
                 config=config,
+                domain_config=domain_config,
+                total_rows=len(dataset),
+                processed_rows=len(results)
+            )
+            
+            metrics = self._generate_metrics(
+                results=results,
+                models=available_models,
                 domain_config=domain_config
             )
             
             logger.info(f"✅ Experiment {experiment_id} completed successfully")
-            logger.info(f"📁 Generated {len(output_files)} result files")
+            logger.info(f"📊 Generated results for {len(results)} rows in memory")
             
             return {
                 "status": "completed",
-                "output_files": output_files,
-                "metrics": {
-                    "total_rows": len(dataset),
-                    "processed_rows": len(results),
-                    "models_used": available_models,
-                    "completion_time": datetime.now().isoformat()
-                }
+                "results_data": results,  # Store actual results in memory
+                "metadata": metadata,
+                "metrics": metrics,
+                "output_files": []  # No files generated
             }
             
         except Exception as e:
@@ -644,82 +648,38 @@ class UnifiedExperimentRunner:
         
         return analysis
     
-    def _generate_result_files(self, experiment_id: str, results: List[Dict], 
-                              config: Dict, domain_config: Dict) -> List[str]:
-        """Generate comprehensive result files."""
-        output_files = []
-        
-        try:
-            # Create experiment directory
-            exp_dir = self.results_dir / experiment_id
-            exp_dir.mkdir(parents=True, exist_ok=True)
-            
-            # 1. Main results CSV
-            csv_path = exp_dir / f"{experiment_id}_results.csv"
-            self._write_results_csv(csv_path, results)
-            output_files.append(str(csv_path))
-            
-            # 2. Experiment metadata JSON
-            metadata_path = exp_dir / f"{experiment_id}_metadata.json"
-            metadata = {
-                'experiment_id': experiment_id,
-                'config': config,
-                'domain_config': {
-                    'name': domain_config.get('name'),
-                    'enabled': domain_config.get('enabled')
-                },
-                'generated_at': datetime.now().isoformat(),
-                'total_results': len(results),
-                'models_used': config.get('models', [])
-            }
-            
-            with open(metadata_path, 'w') as f:
-                json.dump(metadata, f, indent=2, default=str)
-            output_files.append(str(metadata_path))
-            
-            # 3. Summary metrics JSON
-            metrics_path = exp_dir / f"{experiment_id}_metrics.json"
-            metrics = self._calculate_summary_metrics(results, config)
-            
-            with open(metrics_path, 'w') as f:
-                json.dump(metrics, f, indent=2, default=str)
-            output_files.append(str(metrics_path))
-            
-            logger.info(f"📁 Generated {len(output_files)} result files in {exp_dir}")
-            
-        except Exception as e:
-            logger.error(f"Failed to generate result files: {e}")
-            raise
-        
-        return output_files
+    def _generate_metadata(self, experiment_id: str, config: Dict, domain_config: Dict, 
+                          total_rows: int, processed_rows: int) -> Dict[str, Any]:
+        """Generate experiment metadata (in-memory)."""
+        return {
+            'experiment_id': experiment_id,
+            'config': config,
+            'domain_config': {
+                'name': domain_config.get('name'),
+                'enabled': domain_config.get('enabled')
+            },
+            'generated_at': datetime.now().isoformat(),
+            'total_results': processed_rows,
+            'total_rows_in_dataset': total_rows,
+            'models_used': config.get('models', []),
+            'experiment_type': config.get('experiment_type'),
+            'domain': config.get('domain')
+        }
     
-    def _write_results_csv(self, file_path: Path, results: List[Dict]):
-        """Write results to CSV file."""
-        if not results:
-            return
-        
-        # Get all unique field names
-        all_fields = set()
-        for result in results:
-            all_fields.update(result.keys())
-        
-        # Sort fields for consistent output
-        field_names = sorted(all_fields)
-        
-        with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=field_names)
-            writer.writeheader()
-            
-            for result in results:
-                # Ensure all values are strings for CSV
-                clean_result = {}
-                for field in field_names:
-                    value = result.get(field, '')
-                    if isinstance(value, (dict, list)):
-                        value = json.dumps(value)
-                    clean_result[field] = str(value) if value is not None else ''
-                
-                writer.writerow(clean_result)
+    def _generate_metrics(self, results: List[Dict], models: List[str], 
+                         domain_config: Dict) -> Dict[str, Any]:
+        """Generate experiment metrics (in-memory)."""
+        try:
+            return self._calculate_summary_metrics(results, {'models': models})
+        except Exception as e:
+            logger.warning(f"Failed to calculate metrics: {e}")
+            return {
+                'total_results': len(results),
+                'models_used': models,
+                'error': str(e)
+            }
+    
+    # _write_results_csv method removed - using in-memory storage instead
     
     def _calculate_summary_metrics(self, results: List[Dict], config: Dict) -> Dict[str, Any]:
         """Calculate summary metrics from results."""

@@ -182,23 +182,105 @@ class MultiAgentApp {
 
         container.innerHTML = html;
     }
-
-    async downloadExperiment(experimentId, format) {
-        try {
-            const downloadUrl = `${this.apiBaseUrl}/downloads/experiments/${experimentId}/results?format=${format}`;
-            
-            // Create a temporary link and trigger download
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = `experiment_${experimentId}_results.${format}`;
+    
+    // CLIENT-SIDE CSV CONVERSION UTILITIES
+    convertJsonToCsv(data) {
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            return 'No data available';
+        }
+        
+        // Get all unique keys from all objects
+        const keys = new Set();
+        data.forEach(row => {
+            Object.keys(row).forEach(key => keys.add(key));
+        });
+        
+        const headers = Array.from(keys);
+        
+        // Create CSV header row
+        let csv = headers.map(h => `"${h}"`).join(',') + '\n';
+        
+        // Create data rows
+        data.forEach(row => {
+            const values = headers.map(header => {
+                const value = row[header];
+                if (value === null || value === undefined) return '""';
+                
+                // Escape quotes and wrap in quotes
+                const stringValue = String(value).replace(/"/g, '""');
+                return `"${stringValue}"`;
+            });
+            csv += values.join(',') + '\n';
+        });
+        
+        return csv;
+    }
+    
+    downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: `${mimeType};charset=utf-8;` });
+        const link = document.createElement('a');
+        
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
-            console.log(`✅ Started download for experiment ${experimentId} in ${format} format`);
+            console.log(`✅ Downloaded: ${filename}`);
+        } else {
+            console.error('Download not supported in this browser');
+            alert('Download not supported in this browser');
+        }
+    }
+
+    async downloadExperiment(experimentId, format) {
+        try {
+            console.log(`📋 Starting ${format} download for experiment ${experimentId}...`);
+            
+            // Get results from in-memory storage
+            const response = await fetch(`${this.apiBaseUrl}/downloads/experiments/${experimentId}/results`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.success || !data.data || !data.data.results) {
+                throw new Error('No results data available for download');
+            }
+            
+            const { results, name, experiment_id, completed_at } = data.data;
+            const timestamp = completed_at ? new Date(completed_at).toISOString().split('T')[0] : 'unknown';
+            
+            if (format === 'csv') {
+                // Convert JSON to CSV and download
+                const csvContent = this.convertJsonToCsv(results);
+                const filename = `${name || 'experiment'}_${experiment_id}_${timestamp}.csv`;
+                this.downloadFile(csvContent, filename, 'text/csv');
+                
+            } else if (format === 'json') {
+                // Download as JSON
+                const filename = `${name || 'experiment'}_${experiment_id}_${timestamp}.json`;
+                const jsonContent = JSON.stringify({
+                    experiment_id,
+                    name,
+                    completed_at,
+                    total_results: results.length,
+                    results: results,
+                    metadata: data.data.metadata,
+                    metrics: data.data.metrics
+                }, null, 2);
+                this.downloadFile(jsonContent, filename, 'application/json');
+            }
+            
+            console.log(`✅ Downloaded ${format.toUpperCase()} for experiment ${experimentId}`);
         } catch (error) {
             console.error('Download failed:', error);
-            alert('Download failed. Please try again.');
+            alert(`Download failed: ${error.message}`);
         }
     }
 

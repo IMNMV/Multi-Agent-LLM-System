@@ -7,6 +7,78 @@ let currentConfig = {};
 let queueConfig = {}; // Separate configuration for queue system
 let sessionManager = null; // Session manager for API keys
 
+// CLIENT-SIDE CSV CONVERSION UTILITIES
+function convertJsonToCsv(data) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        return 'No data available';
+    }
+    
+    // Get all unique keys from all objects
+    const keys = new Set();
+    data.forEach(row => {
+        Object.keys(row).forEach(key => keys.add(key));
+    });
+    
+    const headers = Array.from(keys);
+    
+    // Create CSV header row
+    let csv = headers.map(h => `"${h}"`).join(',') + '\n';
+    
+    // Create data rows
+    data.forEach(row => {
+        const values = headers.map(header => {
+            const value = row[header];
+            if (value === null || value === undefined) return '""';
+            
+            // Escape quotes and wrap in quotes
+            const stringValue = String(value).replace(/"/g, '""');
+            return `"${stringValue}"`;
+        });
+        csv += values.join(',') + '\n';
+    });
+    
+    return csv;
+}
+
+function downloadCsvFromData(csvContent, filename) {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast(`Downloaded: ${filename}`, 'success');
+    } else {
+        showToast('Download not supported in this browser', 'error');
+    }
+}
+
+function downloadJsonFromData(jsonData, filename) {
+    const jsonContent = JSON.stringify(jsonData, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast(`Downloaded: ${filename}`, 'success');
+    } else {
+        showToast('Download not supported in this browser', 'error');
+    }
+}
+
 // DOM Elements
 let elements = {};
 
@@ -1282,8 +1354,47 @@ function updateResultsSelect() {
     });
 }
 
-async function downloadResults(experimentId, fileType) {
-    window.open(`${API_BASE_URL}/download/${experimentId}/${fileType}`, '_blank');
+async function downloadResults(experimentId, fileType = 'csv') {
+    try {
+        showLoading(`Preparing ${fileType.toUpperCase()} download...`);
+        
+        // Get results from in-memory storage
+        const response = await apiCall(`/downloads/experiments/${experimentId}/results`);
+        
+        if (!response.success || !response.data || !response.data.results) {
+            throw new Error('No results data available for download');
+        }
+        
+        const { results, name, experiment_id, completed_at } = response.data;
+        const timestamp = completed_at ? new Date(completed_at).toISOString().split('T')[0] : 'unknown';
+        
+        if (fileType === 'csv') {
+            // Convert JSON to CSV and download
+            const csvContent = convertJsonToCsv(results);
+            const filename = `${name || 'experiment'}_${experiment_id}_${timestamp}.csv`;
+            downloadCsvFromData(csvContent, filename);
+            
+        } else if (fileType === 'json') {
+            // Download as JSON
+            const filename = `${name || 'experiment'}_${experiment_id}_${timestamp}.json`;
+            downloadJsonFromData({
+                experiment_id,
+                name,
+                completed_at,
+                total_results: results.length,
+                results: results,
+                metadata: response.data.metadata,
+                metrics: response.data.metrics
+            }, filename);
+        }
+        
+        hideLoading();
+        
+    } catch (error) {
+        console.error('Download failed:', error);
+        hideLoading();
+        showToast(`Download failed: ${error.message}`, 'error');
+    }
 }
 
 // Polling for experiment updates

@@ -116,8 +116,15 @@ if not allowed_origins or allowed_origins == [""]:
     allowed_origins = [
         "http://localhost:3000",
         "http://localhost:8000",
-        "https://yourusername.github.io"  # Replace with your GitHub Pages URL
+        "https://imnmv.github.io"  # Updated with actual GitHub Pages URL
     ]
+else:
+    # Clean up whitespace and ensure we have the correct domain
+    allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+    if "https://imnmv.github.io" not in allowed_origins:
+        allowed_origins.append("https://imnmv.github.io")
+
+logger.info(f"🌐 CORS allowed origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,

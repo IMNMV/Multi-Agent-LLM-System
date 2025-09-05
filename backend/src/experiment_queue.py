@@ -46,6 +46,10 @@ class QueuedExperiment:
     error_message: Optional[str] = None
     result_files: List[str] = None
     estimated_duration_minutes: int = 15
+    # IN-MEMORY STORAGE: Store results as JSON data instead of files
+    results_data: Optional[List[Dict[str, Any]]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    metrics: Optional[Dict[str, Any]] = None
     
     def __post_init__(self):
         if self.created_at is None:
@@ -305,8 +309,13 @@ class ExperimentQueue:
                     experiment.status = ExperimentStatus.COMPLETED
                     experiment.completed_at = datetime.now()
                     experiment.progress = 100
-                    if result and 'output_files' in result:
-                        experiment.result_files = result['output_files']
+                    # Store results in memory instead of files
+                    if result:
+                        experiment.results_data = result.get('results_data', [])
+                        experiment.metadata = result.get('metadata', {})
+                        experiment.metrics = result.get('metrics', {})
+                        # Keep file list for backward compatibility (will be empty)
+                        experiment.result_files = result.get('output_files', [])
                     
                     # Update batch counters
                     if experiment.batch_id in self.batches:
