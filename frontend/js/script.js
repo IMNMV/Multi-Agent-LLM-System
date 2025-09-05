@@ -1265,6 +1265,17 @@ function createExperimentCard(id, experiment) {
             <div style="margin-top: 15px;">
                 <strong>Current Step:</strong> ${experiment.current_step || 'Initializing...'}
             </div>
+            
+            ${experiment.status === 'completed' ? `
+                <div class="download-buttons" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="downloadResults('${id}', 'csv')" class="btn btn-primary" style="flex: 1; min-width: 120px;">
+                        <i class="fas fa-download"></i> Download CSV
+                    </button>
+                    <button onclick="downloadResults('${id}', 'json')" class="btn btn-secondary" style="flex: 1; min-width: 120px;">
+                        <i class="fas fa-download"></i> Download JSON
+                    </button>
+                </div>
+            ` : ''}
         </div>
     `;
 }
