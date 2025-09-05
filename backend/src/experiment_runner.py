@@ -167,16 +167,12 @@ class UnifiedExperimentRunner:
                             dataset = self._parse_csv_content(dataset_content)
                             logger.info(f"📊 Successfully parsed dataset with {len(dataset)} rows from direct content")
                         else:
-                            # Fallback to session-based loading with improved Railway support
-                            logger.info(f"⚠️  Falling back to session-based dataset loading for {dataset_path}")
-                            try:
-                                dataset = self._load_dataset(dataset_path, dataset_session_id)
-                                logger.info(f"📊 Successfully loaded dataset with {len(dataset)} rows from {dataset_path}")
-                            except Exception as load_error:
-                                logger.error(f"❌ Session-based loading failed: {load_error}")
-                                raise ValueError(f"FAILED: Could not load dataset {dataset_path}. Railway container isolation issue.")
+                            # This should not happen anymore with the new approach
+                            logger.error(f"❌ No dataset content found in config for {dataset_path}")
+                            raise ValueError(f"FAILED: Dataset content not passed through config. System error.")
                     else:
-                        logger.info("Dataset path is None, will use fallback data")
+                        logger.error("❌ No dataset path provided")
+                        raise ValueError("FAILED: No dataset provided. Upload a real dataset file.")
                 except Exception as e:
                     logger.error(f"Failed to load dataset {dataset_path}: {e}")
                     dataset_path = None

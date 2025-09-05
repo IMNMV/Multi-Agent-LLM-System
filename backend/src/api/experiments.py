@@ -41,11 +41,43 @@ async def start_experiment(request: ExperimentRequest, background_tasks: Backgro
         if invalid_models:
             raise HTTPException(status_code=400, detail=f"Invalid models: {invalid_models}")
         
-        # For now, skip direct dataset content passing and let experiment runner handle it
-        # This avoids import issues in Railway environment during experiment creation
+        # Retrieve dataset content from SESSION_DATASETS in same process and pass it through config
         dataset_content = None
-        logger.info(f"⚠️ Skipping dataset content retrieval during experiment creation")
-        logger.info(f"📋 Will rely on experiment runner to load dataset from session memory")
+        if request.dataset_session_id and request.dataset_path:
+            try:
+                # Access SESSION_DATASETS directly from main module (same process)
+                from ..main import SESSION_DATASETS
+                
+                logger.info(f"🔍 Accessing SESSION_DATASETS with {len(SESSION_DATASETS)} sessions")
+                logger.info(f"🔍 Looking for session: {request.dataset_session_id[:8]}...")
+                logger.info(f"🔍 Looking for dataset: {request.dataset_path}")
+                
+                if request.dataset_session_id in SESSION_DATASETS:
+                    session_datasets = SESSION_DATASETS[request.dataset_session_id]
+                    logger.info(f"🔍 Available datasets in session: {list(session_datasets.keys())}")
+                    
+                    if request.dataset_path in session_datasets:
+                        dataset_content = session_datasets[request.dataset_path]
+                        logger.info(f"✅ Retrieved dataset content ({len(dataset_content)} chars)")
+                    else:
+                        logger.error(f"❌ Dataset {request.dataset_path} not found in session")
+                        raise HTTPException(status_code=400, detail=f"Dataset {request.dataset_path} not found in uploaded files")
+                else:
+                    logger.error(f"❌ Session {request.dataset_session_id[:8]}... not found")
+                    logger.error(f"Available sessions: {list(SESSION_DATASETS.keys())}")
+                    raise HTTPException(status_code=400, detail=f"Upload session not found. Please upload dataset first.")
+                    
+            except ImportError as e:
+                logger.error(f"❌ Failed to import SESSION_DATASETS: {e}")
+                raise HTTPException(status_code=500, detail="Internal server error accessing uploaded datasets")
+            except HTTPException:
+                raise  # Re-raise HTTP exceptions
+            except Exception as e:
+                logger.error(f"❌ Unexpected error retrieving dataset: {e}")
+                raise HTTPException(status_code=500, detail=f"Error accessing dataset: {str(e)}")
+        
+        if request.dataset_path and not dataset_content:
+            raise HTTPException(status_code=400, detail="Dataset content could not be retrieved. Please re-upload your dataset.")
         
         # Create experiment configuration
         experiment_config = {
