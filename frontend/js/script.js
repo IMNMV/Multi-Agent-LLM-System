@@ -1074,7 +1074,8 @@ async function confirmAndStartExperiment() {
         temperature: frontendConfig.temperature,
         num_articles: frontendConfig.num_articles,
         priority: 5, // Default priority
-        session_id: localStorage.getItem('dataset_session_id') || (sessionManager ? sessionManager.getSessionId() : null), // Use dataset session ID
+        session_id: localStorage.getItem('api_session_id') || (sessionManager ? sessionManager.getSessionId() : null), // Use API session ID for auth
+        dataset_session_id: localStorage.getItem('dataset_session_id'), // Use dataset session ID for data access
         dataset_path: frontendConfig.dataset_path // Add dataset path
         // Remove fields backend doesn't need: selected_metrics, selected_adv_metrics, custom_prompt, max_turns, etc.
     };
@@ -1415,31 +1416,61 @@ function formatDate(dateString) {
 
 
 // API Key Management Functions
-function saveApiKeys() {
-    console.log("🔧 DEBUG: Saving API keys to session storage");
+async function saveApiKeys() {
+    console.log("🔧 DEBUG: Saving API keys and creating session");
     
     const apiKeys = {
-        claude: elements.claudeApiKey.value,
-        openai: elements.openaiApiKey.value,
-        gemini: elements.geminiApiKey.value,
-        together: elements.togetherApiKey.value,
-        deepseek: elements.togetherApiKey.value // DeepSeek uses same key as Together
+        anthropic_api_key: elements.claudeApiKey.value,
+        openai_api_key: elements.openaiApiKey.value,
+        google_api_key: elements.geminiApiKey.value,
+        together_api_key: elements.togetherApiKey.value
     };
     
-    // Save to session storage (cleared when window closes)
-    sessionStorage.setItem('apiKeys', JSON.stringify(apiKeys));
+    // Filter out empty keys
+    const filteredKeys = {};
+    Object.entries(apiKeys).forEach(([key, value]) => {
+        if (value && value.trim().length > 10) {
+            filteredKeys[key] = value.trim();
+        }
+    });
     
-    // Send keys to backend
-    apiCall('/keys', 'POST', { api_keys: apiKeys })
-        .then(response => {
-            if (response.success) {
-                showToast('API keys saved successfully', 'success');
-                console.log("✅ DEBUG: API keys saved to backend");
-            } else {
-                showToast('Failed to save API keys', 'error');
-                console.error("❌ ERROR: Failed to save API keys:", response.error);
-            }
+    if (Object.keys(filteredKeys).length === 0) {
+        showToast('Please enter at least one valid API key', 'error');
+        return;
+    }
+    
+    try {
+        // Create session with API keys
+        const response = await apiCall('/sessions/create', 'POST', {
+            api_keys: filteredKeys,
+            session_name: 'Web Interface Session'
         });
+        
+        if (response && response.session_id) {
+            // Store session ID for API key authentication
+            localStorage.setItem('api_session_id', response.session_id);
+            console.log("✅ DEBUG: Session created with ID:", response.session_id.substring(0, 8) + "...");
+            console.log("✅ DEBUG: Available providers:", response.available_providers);
+            
+            // Save keys to session storage for UI display (cleared when window closes)
+            const displayKeys = {
+                claude: elements.claudeApiKey.value,
+                openai: elements.openaiApiKey.value,
+                gemini: elements.geminiApiKey.value,
+                together: elements.togetherApiKey.value,
+                deepseek: elements.togetherApiKey.value
+            };
+            sessionStorage.setItem('apiKeys', JSON.stringify(displayKeys));
+            
+            showToast(`API keys saved successfully. Providers: ${response.available_providers.join(', ')}`, 'success');
+        } else {
+            showToast('Failed to create session with API keys', 'error');
+            console.error("❌ ERROR: Invalid response from session creation:", response);
+        }
+    } catch (error) {
+        showToast('Error saving API keys: ' + error.message, 'error');
+        console.error("❌ ERROR: Failed to create session:", error);
+    }
 }
 
 function clearApiKeys() {

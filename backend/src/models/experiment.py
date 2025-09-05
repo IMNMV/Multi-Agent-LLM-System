@@ -38,6 +38,7 @@ class ExperimentRequest(BaseModel):
     priority: int = Field(default=5, description="Experiment priority (1=highest, 10=lowest)", ge=1, le=10)
     batch_id: Optional[str] = Field(default=None, description="Optional batch ID to group experiments")
     session_id: Optional[str] = Field(default=None, description="Session ID for user-provided API keys")
+    dataset_session_id: Optional[str] = Field(default=None, description="Session ID for uploaded dataset access")
     dataset_path: Optional[str] = Field(default=None, description="Path to uploaded dataset file")
 
 class ExperimentResponse(BaseModel):

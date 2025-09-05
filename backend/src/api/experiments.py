@@ -51,6 +51,7 @@ async def start_experiment(request: ExperimentRequest, background_tasks: Backgro
             "temperature": request.temperature,
             "num_articles": request.num_articles,
             "session_id": request.session_id,  # Pass session ID for API keys
+            "dataset_session_id": request.dataset_session_id,  # Pass dataset session ID for data access
             "dataset_path": request.dataset_path,  # Pass dataset path
             "domain_config": domain_config
         }

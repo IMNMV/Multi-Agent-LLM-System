@@ -68,7 +68,8 @@ class UnifiedExperimentRunner:
             experiment_type = config.get('experiment_type')
             models = config.get('models', [])
             dataset_path = config.get('dataset_path')
-            session_id = config.get('session_id')  # We need to pass this
+            session_id = config.get('session_id')  # For API keys
+            dataset_session_id = config.get('dataset_session_id')  # For dataset access
             
             # Validate required configuration (dataset_path is optional)
             if not all([domain, experiment_type, models]):
@@ -142,7 +143,7 @@ class UnifiedExperimentRunner:
                         logger.info(f"✅ Dataset exists at original path: {dataset_path}")
                     
                     if dataset_path:
-                        dataset = self._load_dataset(dataset_path, session_id)
+                        dataset = self._load_dataset(dataset_path, dataset_session_id or session_id)
                         logger.info(f"📊 Successfully loaded dataset with {len(dataset)} rows from {dataset_path}")
                     else:
                         logger.info("Dataset path is None, will use fallback data")
