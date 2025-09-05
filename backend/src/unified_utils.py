@@ -127,6 +127,16 @@ def initialize_clients(api_keys: Dict[str, str]):
         
         logger.info(f"Initialized {len(_clients)} API clients")
 
+def get_api_clients(api_keys: Dict[str, str]) -> Dict[str, Any]:
+    """Get initialized API clients for the given API keys."""
+    global _clients
+    
+    # Clear existing clients and reinitialize with new keys
+    _clients.clear()
+    initialize_clients(api_keys)
+    
+    return _clients.copy()
+
 def test_api_key_validity(provider: str, api_key: str) -> tuple[bool, str]:
     """Test the validity of an API key by making a simple API call."""
     logger.info(f"Testing {provider} API key validity...")
