@@ -143,7 +143,8 @@ class UnifiedExperimentRunner:
                         logger.info(f"✅ Dataset exists at original path: {dataset_path}")
                     
                     if dataset_path:
-                        dataset = self._load_dataset(dataset_path, dataset_session_id or session_id)
+                        # Use dataset_session_id for loading data, session_id is for API keys
+                        dataset = self._load_dataset(dataset_path, dataset_session_id)
                         logger.info(f"📊 Successfully loaded dataset with {len(dataset)} rows from {dataset_path}")
                     else:
                         logger.info("Dataset path is None, will use fallback data")
