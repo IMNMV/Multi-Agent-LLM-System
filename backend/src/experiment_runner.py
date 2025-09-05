@@ -248,15 +248,39 @@ class UnifiedExperimentRunner:
             try:
                 # Import at runtime to avoid circular import
                 import importlib
-                main_module = importlib.import_module('backend.src.main')
-                SESSION_DATASETS = main_module.SESSION_DATASETS
+                import sys
                 
-                if session_id in SESSION_DATASETS and dataset_path in SESSION_DATASETS[session_id]:
-                    logger.info(f"🧠 Loading dataset from session memory: {dataset_path}")
-                    file_content = SESSION_DATASETS[session_id][dataset_path]
-                    return self._parse_csv_content(file_content)
+                # Try different import paths for Railway environment
+                main_module = None
+                for module_path in ['backend.src.main', 'src.main', 'main']:
+                    try:
+                        main_module = importlib.import_module(module_path)
+                        break
+                    except ImportError:
+                        continue
+                
+                if not main_module:
+                    raise ImportError("Could not import main module")
+                
+                SESSION_DATASETS = main_module.SESSION_DATASETS
+                logger.info(f"🔍 Checking session memory for {session_id} and {dataset_path}")
+                logger.info(f"🔍 Available sessions: {list(SESSION_DATASETS.keys())}")
+                
+                if session_id in SESSION_DATASETS:
+                    logger.info(f"🔍 Available datasets in session: {list(SESSION_DATASETS[session_id].keys())}")
+                    if dataset_path in SESSION_DATASETS[session_id]:
+                        logger.info(f"🧠 Loading dataset from session memory: {dataset_path}")
+                        file_content = SESSION_DATASETS[session_id][dataset_path]
+                        return self._parse_csv_content(file_content)
+                    else:
+                        logger.error(f"Dataset {dataset_path} not found in session {session_id}")
+                else:
+                    logger.error(f"Session {session_id} not found in memory")
+                    
             except Exception as e:
                 logger.error(f"Failed to load from memory: {e}")
+                import traceback
+                traceback.print_exc()
         
         # FALLBACK TO FILE SYSTEM (if path is real file path)
         if os.path.exists(dataset_path):
