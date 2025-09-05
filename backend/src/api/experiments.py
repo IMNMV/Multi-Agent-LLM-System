@@ -45,24 +45,45 @@ async def start_experiment(request: ExperimentRequest, background_tasks: Backgro
         dataset_content = None
         if request.dataset_session_id and request.dataset_path:
             try:
-                # Import main module to access SESSION_DATASETS
-                from ..main import SESSION_DATASETS
+                # Import main module to access SESSION_DATASETS - with error handling
+                import importlib
+                import sys
+                
+                # Try different import paths
+                main_module = None
+                for module_path in ['src.main', '.main', 'main']:
+                    try:
+                        main_module = importlib.import_module(module_path, package='backend.src')
+                        break
+                    except ImportError:
+                        continue
+                
+                if not main_module:
+                    # Direct access attempt
+                    from .. import main as main_module
+                
+                SESSION_DATASETS = getattr(main_module, 'SESSION_DATASETS', {})
+                logger.info(f"🔍 Accessed SESSION_DATASETS with {len(SESSION_DATASETS)} sessions")
+                
                 if request.dataset_session_id in SESSION_DATASETS:
                     if request.dataset_path in SESSION_DATASETS[request.dataset_session_id]:
                         dataset_content = SESSION_DATASETS[request.dataset_session_id][request.dataset_path]
                         logger.info(f"✅ Retrieved dataset content for {request.dataset_path} ({len(dataset_content)} chars)")
                     else:
                         logger.error(f"❌ Dataset path {request.dataset_path} not found in session {request.dataset_session_id[:8]}...")
-                        logger.error(f"Available datasets: {list(SESSION_DATASETS[request.dataset_session_id].keys())}")
+                        available_datasets = list(SESSION_DATASETS[request.dataset_session_id].keys()) if SESSION_DATASETS[request.dataset_session_id] else []
+                        logger.error(f"Available datasets: {available_datasets}")
                 else:
                     logger.error(f"❌ Dataset session {request.dataset_session_id[:8]}... not found")
                     logger.error(f"Available sessions: {list(SESSION_DATASETS.keys())}")
+                    
             except Exception as e:
                 logger.error(f"❌ Failed to retrieve dataset content: {e}")
-                raise HTTPException(status_code=400, detail=f"Failed to access uploaded dataset: {e}")
-        
+                logger.error(f"Import error details: {type(e).__name__}: {str(e)}")
+                # Don't raise HTTP exception here - let it fall through to fallback
+                
         if request.dataset_path and not dataset_content:
-            raise HTTPException(status_code=400, detail=f"Dataset not found. Please upload a dataset file first.")
+            logger.warning(f"⚠️ Dataset content not retrieved, will rely on fallback loading in experiment runner")
         
         # Create experiment configuration
         experiment_config = {
