@@ -97,20 +97,37 @@ class UnifiedExperimentRunner:
             
             # Get API keys from session (if provided)
             api_keys = None
+            logger.info(f"🔧 DEBUG: Session ID received: {session_id}")
+            logger.info(f"🔧 DEBUG: Session manager available: {self.session_manager is not None}")
+            
             if session_id and self.session_manager:
                 try:
                     api_keys = self.session_manager.get_api_keys(session_id)
                     logger.info(f"📋 Retrieved API keys from session {session_id[:8]}...")
+                    logger.info(f"🔧 DEBUG: API keys type: {type(api_keys)}")
+                    logger.info(f"🔧 DEBUG: API keys keys: {list(api_keys.keys()) if api_keys else 'None'}")
+                    if api_keys:
+                        # Show which keys have values (without showing the actual keys)
+                        key_status = {k: "✓ present" if v else "✗ empty" for k, v in api_keys.items()}
+                        logger.info(f"🔧 DEBUG: API keys status: {key_status}")
                 except Exception as e:
                     logger.warning(f"Failed to get API keys from session: {e}")
+                    logger.error(f"🔧 DEBUG: Session lookup error: {e}")
+            else:
+                logger.warning(f"🔧 DEBUG: No session_id ({session_id}) or session_manager ({self.session_manager})")
             
             # Initialize API clients with fallback
             clients = {}
+            logger.info(f"🔧 DEBUG: About to call get_api_clients with: {type(api_keys or {})}")
             if get_api_clients:
                 try:
                     clients = get_api_clients(api_keys or {})
+                    logger.info(f"🔧 DEBUG: get_api_clients returned {len(clients)} clients: {list(clients.keys())}")
                 except Exception as e:
                     logger.warning(f"Failed to initialize API clients: {e}")
+                    logger.error(f"🔧 DEBUG: get_api_clients error: {e}")
+            else:
+                logger.error(f"🔧 DEBUG: get_api_clients function not available!")
             
             # FAIL if no real API clients available - NO MOCK FALLBACKS
             if not clients:
