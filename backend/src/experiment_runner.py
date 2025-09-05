@@ -274,7 +274,9 @@ class UnifiedExperimentRunner:
         dataset = []
         
         try:
-            # Detect delimiter
+            # Detect delimiter by sampling first few lines
+            sample_lines = file_content.split('\n')[:5]  # Sample first 5 lines
+            sample = '\n'.join(sample_lines)
             delimiter = ','
             if sample.count('\t') > sample.count(','):
                 delimiter = '\t'
