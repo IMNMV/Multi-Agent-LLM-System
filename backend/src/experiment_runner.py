@@ -58,9 +58,12 @@ class UnifiedExperimentRunner:
             self.session_manager = None
             self.config_manager = None
         
-    def run_experiment(self, config: Dict[str, Any], experiment_id: str) -> Dict[str, Any]:
+    def run_experiment(self, config: Dict[str, Any], experiment_id: str, progress_callback=None) -> Dict[str, Any]:
         """Run a complete experiment with real AI processing."""
         logger.info(f"🚀 Starting experiment {experiment_id}: {config.get('name', 'Unnamed')}")
+        
+        # Set progress callback for real-time updates
+        self.progress_callback = progress_callback
         
         try:
             # Extract experiment configuration
@@ -187,14 +190,15 @@ class UnifiedExperimentRunner:
                 else:
                     raise ValueError(f"FAILED: No dataset content provided in experiment configuration.")
             
-            # Process dataset through AI models
+            # Process dataset through AI models with progress tracking
             results = self._process_dataset(
                 dataset=dataset,
                 domain_config=domain_config,
                 experiment_type=experiment_type,
                 models=available_models,
                 clients=clients,
-                config=config
+                config=config,
+                progress_callback=self.progress_callback
             )
             
             # Generate result files
@@ -367,10 +371,14 @@ class UnifiedExperimentRunner:
     
     def _process_dataset(self, dataset: List[Dict], domain_config: Dict, 
                         experiment_type: str, models: List[str], 
-                        clients: Dict, config: Dict) -> List[Dict]:
-        """Process each row through AI models."""
+                        clients: Dict, config: Dict, progress_callback=None) -> List[Dict]:
+        """Process each row through AI models with real-time progress updates."""
         results = []
         total_rows = len(dataset)
+        
+        # Initialize progress
+        if progress_callback:
+            progress_callback(0)
         
         # Get system prompts for the domain
         system_prompts = domain_config.get('system_prompts', {})
@@ -436,10 +444,14 @@ class UnifiedExperimentRunner:
                 
                 results.append(row_result)
                 
-                # Progress logging
-                if (row_idx + 1) % 10 == 0:
-                    progress = ((row_idx + 1) / total_rows) * 100
-                    logger.info(f"📊 Progress: {progress:.1f}% ({row_idx + 1}/{total_rows} rows)")
+                # Real-time progress updates
+                current_progress = int(((row_idx + 1) / total_rows) * 100)
+                if progress_callback:
+                    progress_callback(current_progress)
+                
+                # Progress logging (less frequent for large datasets)
+                if (row_idx + 1) % max(1, total_rows // 20) == 0:  # Update every 5% for large datasets
+                    logger.info(f"📊 Progress: {current_progress}% ({row_idx + 1}/{total_rows} rows)")
                 
                 # Rate limiting
                 time.sleep(0.1)  # Prevent API rate limiting
@@ -447,6 +459,10 @@ class UnifiedExperimentRunner:
             except Exception as e:
                 logger.error(f"❌ Failed to process row {row_idx}: {e}")
                 continue
+        
+        # Final progress update
+        if progress_callback:
+            progress_callback(100)
         
         logger.info(f"✅ Processed {len(results)}/{total_rows} rows successfully")
         return results

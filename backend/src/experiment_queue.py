@@ -288,11 +288,18 @@ class ExperimentQueue:
         
         logger.info(f"Starting experiment {experiment.id}: {experiment.name}")
         
+        # Create progress callback for real-time updates
+        def update_progress(progress_percent: int):
+            """Update experiment progress in real-time."""
+            with self._lock:
+                experiment.progress = min(100, max(0, progress_percent))
+                logger.info(f"📊 Experiment {experiment.id} progress: {experiment.progress}%")
+        
         # Start experiment in separate thread
         def run_experiment():
             try:
-                # Run the actual experiment
-                result = self.experiment_runner.run_experiment(experiment.config, experiment.id)
+                # Run the actual experiment with progress callback
+                result = self.experiment_runner.run_experiment(experiment.config, experiment.id, progress_callback=update_progress)
                 
                 with self._lock:
                     experiment.status = ExperimentStatus.COMPLETED
