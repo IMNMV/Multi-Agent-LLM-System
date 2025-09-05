@@ -139,40 +139,39 @@ class UnifiedExperimentRunner:
             
             logger.info(f"🔧 Processing with models: {available_models}")
             
-            # Load dataset with fallbacks
+            # Load dataset with Railway container isolation fix
             dataset = []
             if dataset_path:
                 logger.info(f"🔍 Attempting to load dataset: {dataset_path}")
                 try:
-                    if not os.path.exists(dataset_path):
-                        logger.info(f"Dataset path doesn't exist directly, resolving: {dataset_path}")
-                        # Handle uploaded files (they might be virtual paths)
-                        actual_path = self._resolve_dataset_path(dataset_path)
-                        logger.info(f"🔍 Resolved path result: {actual_path}")
-                        if actual_path and os.path.exists(actual_path):
-                            dataset_path = actual_path
-                            logger.info(f"✅ Found resolved dataset at: {dataset_path}")
-                        else:
-                            logger.warning(f"❌ Dataset file not found after resolution: {dataset_path} -> {actual_path}")
-                            logger.warning("Using fallback data instead of user upload")
-                            dataset_path = None
+                    # PRIORITY 1: Check if dataset content was passed directly in config (Railway fix)
+                    dataset_content = config.get('dataset_content')
+                    if dataset_content:
+                        logger.info(f"🚀 Using dataset content passed directly through config ({len(dataset_content)} chars)")
+                        dataset = self._parse_csv_content(dataset_content)
+                        logger.info(f"📊 Successfully parsed dataset with {len(dataset)} rows from direct content")
                     else:
-                        logger.info(f"✅ Dataset exists at original path: {dataset_path}")
-                    
-                    if dataset_path:
-                        # Check if dataset content was passed directly in config (Railway fix)
-                        dataset_content = config.get('dataset_content')
-                        if dataset_content:
-                            logger.info(f"🚀 Using dataset content passed directly through config ({len(dataset_content)} chars)")
-                            dataset = self._parse_csv_content(dataset_content)
-                            logger.info(f"📊 Successfully parsed dataset with {len(dataset)} rows from direct content")
+                        # FALLBACK: Try filesystem resolution (may not work in Railway)
+                        logger.info(f"⚠️ No dataset content in config, trying filesystem resolution")
+                        if not os.path.exists(dataset_path):
+                            logger.info(f"Dataset path doesn't exist directly, resolving: {dataset_path}")
+                            actual_path = self._resolve_dataset_path(dataset_path)
+                            logger.info(f"🔍 Resolved path result: {actual_path}")
+                            if actual_path and os.path.exists(actual_path):
+                                dataset_path = actual_path
+                                logger.info(f"✅ Found resolved dataset at: {dataset_path}")
+                                # Load from filesystem
+                                with open(dataset_path, 'r', encoding='utf-8') as f:
+                                    file_content = f.read()
+                                dataset = self._parse_csv_content(file_content)
+                            else:
+                                logger.error(f"❌ Dataset file not found after resolution: {dataset_path} -> {actual_path}")
+                                raise ValueError(f"FAILED: Dataset {dataset_path} not found and no content passed through config.")
                         else:
-                            # This should not happen anymore with the new approach
-                            logger.error(f"❌ No dataset content found in config for {dataset_path}")
-                            raise ValueError(f"FAILED: Dataset content not passed through config. System error.")
-                    else:
-                        logger.error("❌ No dataset path provided")
-                        raise ValueError("FAILED: No dataset provided. Upload a real dataset file.")
+                            logger.info(f"✅ Dataset exists at original path: {dataset_path}")
+                            with open(dataset_path, 'r', encoding='utf-8') as f:
+                                file_content = f.read()
+                            dataset = self._parse_csv_content(file_content)
                 except Exception as e:
                     logger.error(f"Failed to load dataset {dataset_path}: {e}")
                     # Re-raise the exception instead of silently setting dataset_path to None
