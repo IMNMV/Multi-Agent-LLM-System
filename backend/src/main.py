@@ -165,6 +165,28 @@ app.include_router(downloads_router, prefix="/api/downloads", tags=["downloads"]
 # app.include_router(uploads_router, prefix="/api", tags=["uploads"])
 # app.include_router(visualizations_router, prefix="/api/visualizations", tags=["visualizations"])
 
+# DEBUG ENDPOINT TO CHECK SESSION_DATASETS MEMORY STATE
+@app.get("/api/debug/sessions")
+async def debug_sessions():
+    """Debug endpoint to check SESSION_DATASETS memory state."""
+    try:
+        sessions_info = {}
+        for session_id, datasets in SESSION_DATASETS.items():
+            sessions_info[session_id] = {
+                "dataset_count": len(datasets),
+                "dataset_ids": list(datasets.keys()),
+                "total_size": sum(len(str(content)) for content in datasets.values())
+            }
+        
+        return {
+            "total_sessions": len(SESSION_DATASETS),
+            "sessions": sessions_info,
+            "memory_usage": f"{sum(len(str(datasets)) for datasets in SESSION_DATASETS.values())} chars"
+        }
+    except Exception as e:
+        logger.error(f"Debug endpoint error: {e}")
+        return {"error": str(e)}
+
 # Add working file upload endpoint with python-multipart support
 @app.post("/api/upload")
 async def upload_file(request: Request):
