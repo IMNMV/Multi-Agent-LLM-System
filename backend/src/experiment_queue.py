@@ -299,11 +299,12 @@ class ExperimentQueue:
                 experiment.progress = min(100, max(0, progress_percent))
                 logger.info(f"📊 Experiment {experiment.id} progress: {experiment.progress}%")
         
-        # Start experiment in separate thread
+        # Start experiment in separate thread with async support
         def run_experiment():
             try:
-                # Run the actual experiment with progress callback
-                result = self.experiment_runner.run_experiment(experiment.config, experiment.id, progress_callback=update_progress)
+                # Run the actual experiment with progress callback (now async)
+                import asyncio
+                result = asyncio.run(self.experiment_runner.run_experiment(experiment.config, experiment.id, progress_callback=update_progress))
                 
                 with self._lock:
                     experiment.status = ExperimentStatus.COMPLETED

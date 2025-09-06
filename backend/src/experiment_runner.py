@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,12 @@ try:
 except ImportError:
     logger.error("Failed to import unified_config")
     get_config_manager = None
+
+try:
+    from .conversation_engine import ConversationEngine
+except ImportError:
+    logger.error("Failed to import conversation_engine")
+    ConversationEngine = None
 
 # REMOVED MOCKCLIENT - NO FAKE DATA ALLOWED
 
@@ -58,7 +65,7 @@ class UnifiedExperimentRunner:
             self.session_manager = None
             self.config_manager = None
         
-    def run_experiment(self, config: Dict[str, Any], experiment_id: str, progress_callback=None) -> Dict[str, Any]:
+    async def run_experiment(self, config: Dict[str, Any], experiment_id: str, progress_callback=None) -> Dict[str, Any]:
         """Run a complete experiment with real AI processing."""
         logger.info(f"🚀 Starting experiment {experiment_id}: {config.get('name', 'Unnamed')}")
         
@@ -190,14 +197,21 @@ class UnifiedExperimentRunner:
                 else:
                     raise ValueError(f"FAILED: No dataset content provided in experiment configuration.")
             
-            # Process dataset through AI models with progress tracking
-            results = self._process_dataset(
+            # Initialize conversation engine for multi-turn experiments
+            if not ConversationEngine:
+                raise ValueError("FAILED: ConversationEngine not available. Multi-turn experiments require conversation engine.")
+            
+            conversation_engine = ConversationEngine()
+            
+            # Process dataset through AI models with FULL MULTI-TURN CONVERSATION ENGINE
+            results = await self._process_dataset_with_conversations(
                 dataset=dataset,
                 domain_config=domain_config,
                 experiment_type=experiment_type,
                 models=available_models,
                 clients=clients,
                 config=config,
+                conversation_engine=conversation_engine,
                 progress_callback=self.progress_callback
             )
             
@@ -373,10 +387,11 @@ class UnifiedExperimentRunner:
         
         return dataset
     
-    def _process_dataset(self, dataset: List[Dict], domain_config: Dict, 
-                        experiment_type: str, models: List[str], 
-                        clients: Dict, config: Dict, progress_callback=None) -> List[Dict]:
-        """Process each row through AI models with real-time progress updates."""
+    async def _process_dataset_with_conversations(self, dataset: List[Dict], domain_config: Dict, 
+                                                experiment_type: str, models: List[str], 
+                                                clients: Dict, config: Dict, 
+                                                conversation_engine, progress_callback=None) -> List[Dict]:
+        """Process each row through FULL MULTI-TURN CONVERSATION ENGINE."""
         results = []
         total_rows = len(dataset)
         
@@ -384,67 +399,50 @@ class UnifiedExperimentRunner:
         if progress_callback:
             progress_callback(0)
         
-        # Get system prompts for the domain
-        system_prompts = domain_config.get('system_prompts', {})
-        base_prompt = system_prompts.get('base', '')
+        # Extract conversation configuration
+        adversarial = config.get('adversarial', False)
+        context_strategy = config.get('context_injection_strategy', 'first_turn_only')
+        max_turns = config.get('max_turns', 3)
         
-        logger.info(f"🔄 Processing {total_rows} rows with {len(models)} models")
+        logger.info(f"🗣️ Starting FULL CONVERSATION processing: {total_rows} articles, {experiment_type} mode")
+        logger.info(f"🎭 Adversarial: {adversarial}, Context: {context_strategy}, Max turns: {max_turns}")
         
         for row_idx, row in enumerate(dataset):
             try:
-                # Create content for AI processing
-                content = self._extract_content_from_row(row, domain_config)
-                if not content:
+                # Extract article content
+                article_text = self._extract_content_from_row(row, domain_config)
+                if not article_text:
                     logger.warning(f"⚠️ Skipping row {row_idx}: no content extracted")
                     continue
                 
-                # Process with each model
+                logger.info(f"🔄 Article {row_idx + 1}/{total_rows}: Starting {experiment_type} conversation...")
+                
+                # Run FULL MULTI-TURN CONVERSATION
+                conversation_result = await conversation_engine.run_conversation(
+                    article_text=article_text,
+                    models=models,
+                    experiment_type=experiment_type,
+                    adversarial=adversarial,
+                    context_strategy=context_strategy,
+                    max_turns=max_turns,
+                    clients=clients
+                )
+                
+                # Build comprehensive result row
                 row_result = {
                     **row,  # Original row data
                     '_experiment_id': config.get('experiment_id', 'unknown'),
                     '_processed_at': datetime.now().isoformat(),
-                    '_experiment_type': experiment_type
+                    '_experiment_type': experiment_type,
+                    '_adversarial_mode': adversarial,
+                    '_context_strategy': context_strategy,
+                    '_max_turns': max_turns,
+                    '_total_turns': len(conversation_result.turns),
+                    '_models_used': ','.join(conversation_result.models)
                 }
                 
-                for model in models:
-                    try:
-                        # Generate AI response
-                        ai_response = self._query_ai_model(
-                            model=model,
-                            client=clients[model],
-                            prompt=base_prompt,
-                            content=content,
-                            config=config
-                        )
-                        
-                        # Extract metrics and analysis
-                        analysis = self._analyze_ai_response(
-                            response=ai_response,
-                            model=model,
-                            domain_config=domain_config,
-                            original_row=row
-                        )
-                        
-                        # Store results
-                        row_result[f'{model}_response'] = ai_response
-                        row_result[f'{model}_confidence'] = analysis.get('confidence', 0.0)
-                        row_result[f'{model}_classification'] = analysis.get('classification', 'unknown')
-                        row_result[f'{model}_reasoning'] = analysis.get('reasoning', '')
-                        
-                        # Domain-specific metrics
-                        if domain_config.get('name') == 'fake_news':
-                            row_result[f'{model}_is_fake'] = analysis.get('is_fake', None)
-                            row_result[f'{model}_bias_score'] = analysis.get('bias_score', 0.0)
-                            row_result[f'{model}_manipulation_detected'] = analysis.get('manipulation_detected', False)
-                        
-                        logger.debug(f"✓ Processed row {row_idx+1}/{total_rows} with {model}")
-                        
-                    except Exception as e:
-                        logger.error(f"❌ Failed to process row {row_idx} with {model}: {e}")
-                        row_result[f'{model}_response'] = f"ERROR: {str(e)}"
-                        row_result[f'{model}_confidence'] = 0.0
-                        row_result[f'{model}_classification'] = 'error'
-                        continue
+                # Add ALL conversation data to result
+                self._add_conversation_metrics_to_result(row_result, conversation_result)
                 
                 results.append(row_result)
                 
@@ -453,23 +451,72 @@ class UnifiedExperimentRunner:
                 if progress_callback:
                     progress_callback(current_progress)
                 
-                # Progress logging (less frequent for large datasets)
-                if (row_idx + 1) % max(1, total_rows // 20) == 0:  # Update every 5% for large datasets
-                    logger.info(f"📊 Progress: {current_progress}% ({row_idx + 1}/{total_rows} rows)")
+                # Progress logging
+                if (row_idx + 1) % max(1, total_rows // 20) == 0:
+                    logger.info(f"📊 Progress: {current_progress}% ({row_idx + 1}/{total_rows} articles processed)")
                 
-                # Rate limiting
-                time.sleep(0.1)  # Prevent API rate limiting
+                # Rate limiting between articles
+                time.sleep(0.2)
                 
             except Exception as e:
-                logger.error(f"❌ Failed to process row {row_idx}: {e}")
+                logger.error(f"❌ Failed to process article {row_idx}: {e}")
                 continue
         
         # Final progress update
         if progress_callback:
             progress_callback(100)
         
-        logger.info(f"✅ Processed {len(results)}/{total_rows} rows successfully")
+        logger.info(f"✅ FULL CONVERSATION PROCESSING COMPLETE: {len(results)}/{total_rows} articles processed")
         return results
+    
+    def _add_conversation_metrics_to_result(self, row_result: Dict[str, Any], conversation_result) -> None:
+        """Add all conversation data and metrics to result row."""
+        
+        # Add final metrics for each model
+        for key, value in conversation_result.final_metrics.items():
+            row_result[key] = value
+        
+        # Add agreement scores
+        for model, score in conversation_result.agreement_scores.items():
+            row_result[f'{model}_final_agreement_score'] = score
+        
+        # Add influence scores  
+        for model, score in conversation_result.influence_scores.items():
+            row_result[f'{model}_final_influence_score'] = score
+        
+        # Add complete conversation history
+        conversation_history = []
+        for turn in conversation_result.turns:
+            conversation_history.append({
+                'turn': turn.turn_number,
+                'model': turn.model,
+                'is_adversary': turn.is_adversary,
+                'response': turn.response,
+                'metrics': turn.metrics
+            })
+        
+        row_result['_conversation_history'] = json.dumps(conversation_history, indent=2)
+        
+        # Add turn-by-turn metrics for detailed analysis
+        for turn in conversation_result.turns:
+            turn_prefix = f'{turn.model}_turn_{turn.turn_number}_'
+            
+            for metric_key, metric_value in turn.metrics.items():
+                if metric_key != 'full_response':  # Skip full response to avoid duplication
+                    row_result[f'{turn_prefix}{metric_key}'] = metric_value
+        
+        # Add adversarial analysis
+        if conversation_result.adversarial:
+            adversary_turns = [turn for turn in conversation_result.turns if turn.is_adversary]
+            if adversary_turns:
+                row_result['_adversary_model'] = adversary_turns[0].model
+                row_result['_adversary_turns_count'] = len(adversary_turns)
+                
+                # Calculate adversarial influence
+                final_influence = conversation_result.influence_scores.get(adversary_turns[0].model, 0.0)
+                row_result['_adversarial_influence_success'] = final_influence
+        
+        logger.debug(f"📊 Added {len([k for k in row_result.keys() if not k.startswith('_')])} conversation metrics to result")
     
     def _extract_content_from_row(self, row: Dict, domain_config: Dict) -> Optional[str]:
         """Extract content for AI analysis from dataset row."""
