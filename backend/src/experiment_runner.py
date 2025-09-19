@@ -243,6 +243,10 @@ class UnifiedExperimentRunner:
             
         except Exception as e:
             logger.error(f"❌ Experiment {experiment_id} failed: {e}")
+            logger.error(f"❌ Failure context - Domain: {config.get('domain')}, Models: {config.get('models')}, Type: {config.get('experiment_type')}")
+            logger.error(f"❌ Full error details: {str(e)}")
+            import traceback
+            logger.error(f"❌ Stack trace: {traceback.format_exc()}")
             raise
     
     def _resolve_dataset_path(self, dataset_path: str) -> Optional[str]:
