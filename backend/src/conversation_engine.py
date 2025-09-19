@@ -152,9 +152,11 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
                 raise ValueError("Single experiments require at least 1 model")
             return self._run_single_model(article_text, models[0], clients)
         elif experiment_type == "dual":
-            if len(models) < 2:
-                raise ValueError(f"Dual experiments require at least 2 models, but only {len(models)} provided: {models}")
-            return self._run_dual_conversation(article_text, models[:2], adversarial, context_strategy, max_turns, clients)
+            if len(models) < 1:
+                raise ValueError(f"Dual experiments require at least 1 model, but only {len(models)} provided: {models}")
+            # If only one model provided, duplicate it for dual conversation
+            dual_models = models[:2] if len(models) >= 2 else [models[0], models[0]]
+            return self._run_dual_conversation(article_text, dual_models, adversarial, context_strategy, max_turns, clients)
         elif experiment_type == "consensus":
             if len(models) < 3:
                 raise ValueError(f"Consensus experiments require at least 3 models, but only {len(models)} provided: {models}")
