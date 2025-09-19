@@ -949,7 +949,7 @@ function showPreRunAnalytics() {
         experiment_types: Array.from(elements.experimentTypes)
             .filter(cb => cb.checked)
             .map(cb => cb.value),
-        models: Array.from(elements.models)
+        models: multiModelState.isActive ? getMultiModelSelection() : Array.from(elements.models)
             .filter(cb => cb.checked)
             .map(cb => cb.value),
         adversarial: elements.adversarialToggle.checked,
@@ -2922,4 +2922,138 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+
+// === MULTI-MODEL SELECTOR FOR DUAL/CONSENSUS ===
+
+// Available models for selection
+const availableModels = [
+    { value: 'claude', label: 'Claude' },
+    { value: 'openai', label: 'OpenAI GPT' },
+    { value: 'gemini', label: 'Google Gemini' },
+    { value: 'together', label: 'Exaone 3.5' },
+    { value: 'deepseek', label: 'DeepSeek' }
+];
+
+// Multi-model state
+let multiModelState = {
+    positions: [],
+    isActive: false
+};
+
+// Initialize multi-model selector
+function initializeMultiModelSelector() {
+    const addButton = document.getElementById('addModelPosition');
+    if (addButton) {
+        addButton.addEventListener('click', addModelPosition);
+    }
+    
+    // Watch for experiment type changes
+    const experimentCheckboxes = document.querySelectorAll('input[name="experiment_types"]');
+    experimentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateMultiModelVisibility);
+    });
+}
+
+// Update visibility based on experiment types
+function updateMultiModelVisibility() {
+    const selectedExperiments = Array.from(document.querySelectorAll('input[name="experiment_types"]:checked'))
+        .map(cb => cb.value);
+    
+    const needsMultiModel = selectedExperiments.some(type => type === 'dual' || type === 'consensus');
+    const multiModelSelector = document.getElementById('multiModelSelector');
+    const regularModelSelector = document.querySelector('.config-group:has(input[name="models"])');
+    
+    if (needsMultiModel) {
+        // Show multi-model selector, hide regular checkboxes
+        multiModelSelector.style.display = 'block';
+        if (regularModelSelector) regularModelSelector.style.display = 'none';
+        
+        // Initialize with minimum required positions
+        if (multiModelState.positions.length === 0) {
+            const maxRequired = selectedExperiments.includes('consensus') ? 3 : 2;
+            for (let i = 0; i < maxRequired; i++) {
+                addModelPosition();
+            }
+        }
+        multiModelState.isActive = true;
+    } else {
+        // Hide multi-model selector, show regular checkboxes
+        multiModelSelector.style.display = 'none';
+        if (regularModelSelector) regularModelSelector.style.display = 'block';
+        multiModelState.isActive = false;
+    }
+}
+
+// Add a new model position
+function addModelPosition() {
+    const positionIndex = multiModelState.positions.length;
+    const positionDiv = document.createElement('div');
+    positionDiv.className = 'model-position';
+    positionDiv.innerHTML = `
+        <div class="model-position-controls">
+            <label>Model ${positionIndex + 1}:</label>
+            <select class="model-selector" data-position="${positionIndex}">
+                <option value="">Select a model...</option>
+                ${availableModels.map(model => 
+                    `<option value="${model.value}">${model.label}</option>`
+                ).join('')}
+            </select>
+            <button type="button" class="remove-position" onclick="removeModelPosition(${positionIndex})">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('multiModelPositions').appendChild(positionDiv);
+    multiModelState.positions.push({ model: '', element: positionDiv });
+    
+    // Add change listener
+    const selector = positionDiv.querySelector('.model-selector');
+    selector.addEventListener('change', (e) => {
+        multiModelState.positions[positionIndex].model = e.target.value;
+        validateConfiguration();
+    });
+}
+
+// Remove a model position
+function removeModelPosition(index) {
+    if (multiModelState.positions.length <= 2) {
+        showToast('Minimum 2 models required for multi-model experiments', 'warning');
+        return;
+    }
+    
+    const position = multiModelState.positions[index];
+    if (position && position.element) {
+        position.element.remove();
+    }
+    
+    multiModelState.positions.splice(index, 1);
+    
+    // Update indices
+    multiModelState.positions.forEach((pos, newIndex) => {
+        const selector = pos.element.querySelector('.model-selector');
+        const removeBtn = pos.element.querySelector('.remove-position');
+        const label = pos.element.querySelector('label');
+        
+        selector.setAttribute('data-position', newIndex);
+        removeBtn.setAttribute('onclick', `removeModelPosition(${newIndex})`);
+        label.textContent = `Model ${newIndex + 1}:`;
+    });
+    
+    validateConfiguration();
+}
+
+// Get selected models from multi-model selector
+function getMultiModelSelection() {
+    if (!multiModelState.isActive) return [];
+    
+    return multiModelState.positions
+        .map(pos => pos.model)
+        .filter(model => model !== '');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initializeMultiModelSelector();
 });

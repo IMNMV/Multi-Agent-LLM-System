@@ -2166,3 +2166,67 @@ body {
 .advanced-config .config-group {
     margin-top: 15px;
 }
+
+/* Multi-Model Selector Styles */
+.model-position {
+    margin-bottom: 10px;
+}
+
+.model-position-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.model-position-controls label {
+    min-width: 80px;
+    font-weight: 500;
+}
+
+.model-selector {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 14px;
+}
+
+.remove-position {
+    padding: 8px 12px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.remove-position:hover {
+    background-color: #c82333;
+    transform: scale(1.05);
+}
+
+.btn-secondary {
+    padding: 8px 16px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: scale(1.02);
+}
+
+.help-text {
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 10px;
+}
