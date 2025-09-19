@@ -162,7 +162,7 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
         system_prompt = self.system_prompts["single"]
         
         # Make API call
-        response = await self._call_model(model, system_prompt, f"Article to analyze:\n{article_text}", clients)
+        response = self._call_model(model, system_prompt, f"Article to analyze:\n{article_text}", clients)
         
         # Parse metrics
         metrics = self._parse_single_response(response)
@@ -217,7 +217,7 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
                 user_message = self._build_user_message(article_text, turn_num, context_strategy, conversation_history)
                 
                 # Make API call
-                response = await self._call_model(model, system_prompt, user_message, clients)
+                response = self._call_model(model, system_prompt, user_message, clients)
                 
                 # Parse metrics
                 metrics = self._parse_dual_response(response, is_final_turn, adversarial)
@@ -279,7 +279,7 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
                 user_message = self._build_user_message(article_text, turn_num, context_strategy, conversation_history)
                 
                 # Make API call
-                response = await self._call_model(model, system_prompt, user_message, clients)
+                response = self._call_model(model, system_prompt, user_message, clients)
                 
                 # Parse metrics
                 metrics = self._parse_consensus_response(response, is_final_turn, adversarial)
@@ -407,7 +407,7 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
         }
         return identities.get(model, model)
     
-    async def _call_model(self, model: str, system_prompt: str, user_message: str, clients: Dict[str, Any]) -> str:
+    def _call_model(self, model: str, system_prompt: str, user_message: str, clients: Dict[str, Any]) -> str:
         """Make API call to model."""
         
         if model not in clients:
@@ -418,7 +418,7 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
         try:
             # Make API call based on model type
             if model == "claude":
-                response = await client.messages.create(
+                response = client.messages.create(
                     model="claude-sonnet-4-20250514",
                     max_tokens=4000,
                     system=system_prompt,
@@ -427,7 +427,7 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
                 return response.content[0].text
                 
             elif model == "openai":
-                response = await client.chat.completions.create(
+                response = client.chat.completions.create(
                     model="gpt-4o-2024-08-06",
                     max_tokens=4000,
                     messages=[
@@ -440,11 +440,11 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
             elif model == "gemini":
                 # Combine system and user message for Gemini
                 full_prompt = f"{system_prompt}\n\n{user_message}"
-                response = await client.generate_content(full_prompt)
+                response = client.generate_content(full_prompt)
                 return response.text
                 
             elif model == "together":
-                response = await client.chat.completions.create(
+                response = client.chat.completions.create(
                     model="lgai/exaone-3-5-32b-instruct",
                     max_tokens=4000,
                     messages=[
