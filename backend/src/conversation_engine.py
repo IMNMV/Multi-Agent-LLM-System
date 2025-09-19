@@ -138,7 +138,7 @@ Influence Score: [A 0-100 value indicating how much the previous model(s) influe
 Overall Opinion: [A 0-100 value indicating how much you respect the opinion of the other model(s)]""",
         }
     
-    async def run_conversation(self, article_text: str, models: List[str], 
+    def run_conversation(self, article_text: str, models: List[str], 
                              experiment_type: str, adversarial: bool,
                              context_strategy: str, max_turns: int,
                              clients: Dict[str, Any]) -> ConversationResult:

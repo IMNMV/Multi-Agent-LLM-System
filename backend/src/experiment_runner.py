@@ -418,7 +418,7 @@ class UnifiedExperimentRunner:
                 logger.info(f"🔄 Article {row_idx + 1}/{total_rows}: Starting {experiment_type} conversation...")
                 
                 # Run FULL MULTI-TURN CONVERSATION
-                conversation_result = await conversation_engine.run_conversation(
+                conversation_result = conversation_engine.run_conversation(
                     article_text=article_text,
                     models=models,
                     experiment_type=experiment_type,
