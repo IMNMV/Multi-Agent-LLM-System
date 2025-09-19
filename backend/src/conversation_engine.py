@@ -147,15 +147,15 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
         logger.info(f"🗣️ Starting {experiment_type} conversation: {len(models)} models, {max_turns} turns, adversarial={adversarial}")
         
         if experiment_type == "single":
-            return await self._run_single_model(article_text, models[0], clients)
+            return self._run_single_model(article_text, models[0], clients)
         elif experiment_type == "dual":
-            return await self._run_dual_conversation(article_text, models[:2], adversarial, context_strategy, max_turns, clients)
+            return self._run_dual_conversation(article_text, models[:2], adversarial, context_strategy, max_turns, clients)
         elif experiment_type == "consensus":
-            return await self._run_consensus_conversation(article_text, models[:3], adversarial, context_strategy, max_turns, clients)
+            return self._run_consensus_conversation(article_text, models[:3], adversarial, context_strategy, max_turns, clients)
         else:
             raise ValueError(f"Unknown experiment type: {experiment_type}")
     
-    async def _run_single_model(self, article_text: str, model: str, clients: Dict[str, Any]) -> ConversationResult:
+    def _run_single_model(self, article_text: str, model: str, clients: Dict[str, Any]) -> ConversationResult:
         """Run single model analysis (no conversation)."""
         
         # Get system prompt
@@ -188,7 +188,7 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
             influence_scores={}
         )
     
-    async def _run_dual_conversation(self, article_text: str, models: List[str], 
+    def _run_dual_conversation(self, article_text: str, models: List[str], 
                                    adversarial: bool, context_strategy: str,
                                    max_turns: int, clients: Dict[str, Any]) -> ConversationResult:
         """Run dual model conversation with optional adversarial mode."""
@@ -251,7 +251,7 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
             influence_scores=influence_scores
         )
     
-    async def _run_consensus_conversation(self, article_text: str, models: List[str],
+    def _run_consensus_conversation(self, article_text: str, models: List[str],
                                         adversarial: bool, context_strategy: str,
                                         max_turns: int, clients: Dict[str, Any]) -> ConversationResult:
         """Run consensus conversation with 3 models."""
