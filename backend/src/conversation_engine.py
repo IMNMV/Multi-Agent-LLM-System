@@ -146,11 +146,18 @@ Overall Opinion: [A 0-100 value indicating how much you respect the opinion of t
         
         logger.info(f"🗣️ Starting {experiment_type} conversation: {len(models)} models, {max_turns} turns, adversarial={adversarial}")
         
+        # Validate model count for experiment type
         if experiment_type == "single":
+            if len(models) < 1:
+                raise ValueError("Single experiments require at least 1 model")
             return self._run_single_model(article_text, models[0], clients)
         elif experiment_type == "dual":
+            if len(models) < 2:
+                raise ValueError(f"Dual experiments require at least 2 models, but only {len(models)} provided: {models}")
             return self._run_dual_conversation(article_text, models[:2], adversarial, context_strategy, max_turns, clients)
         elif experiment_type == "consensus":
+            if len(models) < 3:
+                raise ValueError(f"Consensus experiments require at least 3 models, but only {len(models)} provided: {models}")
             return self._run_consensus_conversation(article_text, models[:3], adversarial, context_strategy, max_turns, clients)
         else:
             raise ValueError(f"Unknown experiment type: {experiment_type}")

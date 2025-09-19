@@ -460,6 +460,10 @@ class UnifiedExperimentRunner:
                 
             except Exception as e:
                 logger.error(f"❌ Failed to process article {row_idx}: {e}")
+                logger.error(f"❌ Error type: {type(e).__name__}")
+                logger.error(f"❌ Article content preview: {str(article_text)[:100]}...")
+                logger.error(f"❌ Models: {models}")
+                logger.error(f"❌ Experiment type: {experiment_type}")
                 continue
         
         # Final progress update
